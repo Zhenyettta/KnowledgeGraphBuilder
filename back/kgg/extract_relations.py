@@ -101,6 +101,10 @@ def extract_relations_with_auto_labels(text: str, ner: list) -> list:
     for i, token in enumerate(tokens):
         print(f"{i}: {token}")
 
+    # transforming right-exclusive ranges to right-inclusive (FIXME do it better)
+    for span in ner:
+        span[1] -= 1
+
     # Predict relations with adjusted parameters
     relations = model.predict_relations(tokens, relation_labels, threshold=0.4, ner=ner, top_k=5)
 
