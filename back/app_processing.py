@@ -19,7 +19,6 @@ def process_text(file_path, labels=None):
 
     # Додаткова обробка з labels
     if labels:
-        # Простий приклад пошуку слів, які збігаються з labels
         found_labels = {label: content.lower().count(label.lower()) for label in labels}
         processed_data["label_matches"] = found_labels
 

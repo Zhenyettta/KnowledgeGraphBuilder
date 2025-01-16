@@ -12,12 +12,10 @@ st.write("Завантажте файл, щоб розпочати обробк�
 uploaded_file = st.file_uploader("Завантажте текстовий файл", type=["txt", "docx", "pdf"])
 labels_file = st.file_uploader("Завантажте файл із labels (формат .txt)", type=["txt"])
 
-# Введення labels вручну
 manual_labels = st.text_input("Або введіть labels вручну через кому (наприклад: Person, Award, Date):")
 
 # Зчитування labels із файлу або вручну
 labels = []
-# Read labels from file if uploaded
 if labels_file:
     labels = [line.decode("utf-8").strip() for line in labels_file.readlines()]
     st.success(f"Labels успішно завантажено: {', '.join(labels)}")
@@ -33,7 +31,6 @@ else:
 
 
 if uploaded_file and labels:
-    # Збереження завантаженого файлу
     upload_dir = os.path.join("front", "uploads")
     os.makedirs(upload_dir, exist_ok=True)
     file_path = os.path.join(upload_dir, uploaded_file.name)
