@@ -1,7 +1,9 @@
+
 import spacy
 from gliner import GLiNER
+from deprecated import deprecated
 
-
+@deprecated(reason="This function is now deprecated")
 def extract_entities(text: str, labels: list) -> list:
     """
     Extract entities from the given text using GLiNER and map character indices to token indices.
@@ -14,10 +16,11 @@ def extract_entities(text: str, labels: list) -> list:
     # Initialize the GLiNER model
     model = GLiNER.from_pretrained("urchade/gliner_medium-v2.1")
 
+
     # Tokenize the text using SpaCy
     nlp = spacy.load("en_core_web_sm")
     doc = nlp(text)
-    tokens = [token.text for token in doc]
+
 
     # Perform entity prediction with the specified labels
     entities = model.predict_entities(text, labels, threshold=0.5)
@@ -37,7 +40,7 @@ def extract_entities(text: str, labels: list) -> list:
             if token.idx == start_char_idx:
                 token_start_idx = i
             if token.idx + len(token.text) == end_char_idx:
-                token_end_idx = i + 1  # Make end_idx exclusive
+                token_end_idx = i
                 break
 
         # Verify the match

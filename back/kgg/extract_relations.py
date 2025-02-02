@@ -1,12 +1,16 @@
 import spacy
 from glirel import GLiREL
+from deprecated import deprecated
 
+
+@deprecated(reason="This function is now deprecated")
 def extract_relations_with_auto_labels(text: str, ner: list) -> list:
     """
     Extract relations from the given text using GLiREL with debugging enhancements.
     """
     # Initialize the GLiREL model
     model = GLiREL.from_pretrained("jackboyla/glirel-large-v0")
+
 
 
     # Define relation labels
@@ -87,7 +91,7 @@ def extract_relations_with_auto_labels(text: str, ner: list) -> list:
         "related to",
         "championed by",
         "discovered by",
-        "attended by"
+        "attended by",
     ]
 
 
@@ -106,7 +110,7 @@ def extract_relations_with_auto_labels(text: str, ner: list) -> list:
         span[1] -= 1
 
     # Predict relations with adjusted parameters
-    relations = model.predict_relations(tokens, relation_labels, threshold=0.4, ner=ner, top_k=5)
+    relations = model.predict_relations(tokens, relation_labels, threshold=0.0, ner=ner, top_k=1)
 
     # Debug: Print raw relations
     print("Raw relations:")
@@ -126,3 +130,4 @@ def extract_relations_with_auto_labels(text: str, ner: list) -> list:
         print(f"{item['head_text']} --> {item['label']} --> {item['tail_text']} | score: {item['score']}")
 
     return sorted_data_desc
+
