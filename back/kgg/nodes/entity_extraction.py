@@ -18,14 +18,13 @@ class BaseEntitiesGenerator(Runnable[dict[str, RawDocument | Schema], NERDocumen
 class GLiNEREntitiesGenerator(BaseEntitiesGenerator):
 
     def __init__(self):
-        self.model = GLiNER.from_pretrained("urchade/gliner_medium-v2.1")
-        self.nlp = spacy.load("en_core_web_sm")
+        self.model = GLiNER.from_pretrained("urchade/gliner_large-v2.1")
+        self.nlp = spacy.load("en_core_web_lg")
 
     def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> NERDocument:
-        print(input)
         text = input["document"].text
         doc = self.nlp(text)
-        entities = self.model.predict_entities(text, input["schema"].labels, threshold=0.5)
+        entities = self.model.predict_entities(text, input["schema"].labels, threshold=0.2, multi_label=True)
         extracted_entities = []
         for entity in entities:
             start_char_idx = entity["start"]
