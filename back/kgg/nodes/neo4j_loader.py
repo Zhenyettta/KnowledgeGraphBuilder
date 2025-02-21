@@ -2,10 +2,10 @@ import uuid
 from typing import Optional, Any, Dict
 from neo4j import GraphDatabase
 from langchain_core.runnables import Runnable, RunnableConfig
-from kgg.models import RelationDocument
+from kgg.models import RawDocument
 
-class BaseNeo4jLoader(Runnable[RelationDocument, Dict[str, Any]]):
-    def invoke(self, input: RelationDocument, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Dict[str, Any]:
+class BaseNeo4jLoader(Runnable[RawDocument, Dict[str, Any]]):
+    def invoke(self, input: RawDocument, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Dict[str, Any]:
         raise NotImplementedError()
 
 class Neo4jRelationsInserter(BaseNeo4jLoader):
@@ -13,10 +13,9 @@ class Neo4jRelationsInserter(BaseNeo4jLoader):
         self.driver = GraphDatabase.driver(bolt_uri, auth=(user, password))
         self.database = database
 
-    def invoke(self, input: RelationDocument, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Dict[str, Any]:
+    def invoke(self, input: RawDocument, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Dict[str, Any]:
         with self.driver.session(database=self.database) as session:
-            print(input)
-            document_result = session.execute_write(self._create_document, input.document.text)
+            document_result = session.execute_write(self._create_document, input.text)
             document_id = document_result["document_id"]
             entities_count = 0
             for entity in input.entities:

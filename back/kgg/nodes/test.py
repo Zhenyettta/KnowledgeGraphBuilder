@@ -1,16 +1,21 @@
 import spacy
+import torch
 from glirel import GLiREL
-
-model = GLiREL.from_pretrained("jackboyla/glirel-large-v0")  # Load GLiREL model
+device = torch.device("cuda")
+model = GLiREL.from_pretrained("jackboyla/glirel-large-v0").to(device)  # Load GLiREL model
 nlp = spacy.load("en_core_web_lg")  # Load spaCy's large English NER model
 
-text = "Amazon, founded by Jeff Bezos, is a leader in e-commerce and cloud computing. The company has also ventured into artificial intelligence and digital streaming."
+text = "Bob has a dog"
 doc = nlp(text)  # Run spaCy NER on the text
+tokens = [token.text for token in doc]
+# Convert extracted entities into GLiREL-compatible format
+ner = [[0, 0, 'person', 'Bob'], [3, 3, 'animal', 'dog']]
 
-    # Convert extracted entities into GLiREL-compatible format
-ner = [[ent.start_char, ent.end_char, ent.label_, ent.text] for ent in doc.ents]
+labels = {"glirel_labels": {"has": {"allowed_head": ["person"], "allowed_tail": ["animal"]},
+                             "owns": {"allowed_head": ["person"], "allowed_tail": ["animal"]},
+                            }
+          }
 
-print(ner)
+relations = model.predict_relations(tokens, labels, threshold=0.0, ner=ner, top_k=1, flat_ner=False)
 
-
-
+print(relations)

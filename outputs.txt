@@ -1,0 +1,11 @@
+Hermes 8B Q8
+['organization', 'location', 'person', 'date', 'product', 'technology', 'market', 'event', 'industry', 'company', 'disease', 'treatment', 'research', 'project', 'investment', 'capital', 'footprint', 'algorithm']
+['founded_by', 'located_in', 'pioneered', 'launched', 'garners_attention', 'acquired', 'expanded_into', 'entered_into', 'co-developed', 'reorganized', 'collaborated_with', 'invested_in', 'extended_to', 'partnered_with', 'developed']
+
+Storm 8B Q8
+['year', 'person', 'location', 'organization', 'event', 'product', 'technology', 'market', 'partnership', 'division', 'project', 'foundation', 'capital', 'investment', 'footprint', 'city', 'country', 'firm']
+["founded_by", "located_in", "pioneered_in", "launched_in", "acquired", "entered_in", "established_in", "partnered_with", "reorganized_in", "invested_in", "extended_in", "partnered_with]
+
+Storm 8B Q6 K
+['year', 'person', 'location', 'organization', 'event', 'technology', 'product', 'market', 'partnership', 'division', 'project', 'foundation', 'investment', 'capital', 'footprint', 'city', 'country']
+["founded_by", "located_in", "pioneered_in", "launched_in", "acquired", "entered_in", "established_in", "partnered_with", "reorganized_in", "launched_in", "invested_in", "extended_in", "partnered_with]

@@ -3,12 +3,13 @@ import re
 from abc import abstractmethod
 from typing import Optional, Any
 
-from langchain_core.messages import AIMessage
+from langchain_core.messages import BaseMessage
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
-from kgg.models import RawDocument, Schema
+from kgg.models import RawDocument, Schema, ER_PROMPT, ER_NEW_PROMPT
 
 
 class BaseRelationsSchemaGenerator(Runnable[RawDocument, Schema]):
@@ -31,12 +32,12 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
     def __init__(
             self,
             server_url: str = "http://localhost:8080",
-            instruction: str = None,
-            max_tokens: int = -1
+            max_tokens: int = 2048,
+            prompt: ChatPromptTemplate = None,
     ):
         self.server_url = server_url
-        self.instruction = instruction
         self.max_tokens = max_tokens
+        self.prompt = prompt or ER_NEW_PROMPT
 
     def invoke(
             self,
@@ -45,36 +46,32 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
             **kwargs: Any
     ) -> Schema:
         try:
-            prompt = self._construct_prompt(input.text)
-
             llm = ChatOpenAI(
                 base_url=self.server_url,
-                temperature=0,
-                max_tokens=None,
+                temperature=0.8,
+                max_tokens=self.max_tokens,
                 timeout=300,
                 max_retries=1,
                 api_key=SecretStr("aboba")
 
             )
-            response = llm.invoke(prompt)
-            labels = self._parse_response(response)
-
+            response = llm.invoke(self.prompt.format_prompt(
+                user_input=input.text,
+                entities=[x.text for x in input.entities]
+            ))
+            if "glirel_labels" not in response.content:
+                labels = self._parse_response(response)
+            else:
+                labels = self._parse_dict_response(response)
+            print(labels)
             return Schema(labels=labels)
 
         except Exception as e:
             print(f"Error generating schema: {e}")
             return Schema(labels=[])
 
-    def _construct_prompt(self, text: str) -> list[dict[str, str]]:
-        prompt = [
-            {"role": "system", "content": self.instruction},
-            {"role": "user", "content": text}
-        ]
-        return prompt
-
-    def _parse_response(self, response: AIMessage) -> list[str]:
+    def _parse_response(self, response: BaseMessage) -> list[str]:
         generated_text = response.content.strip()
-
         if not generated_text:
             print("Warning: Empty response content.")
             return []
@@ -89,7 +86,6 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
             json_str = json_str.replace("'", '"').replace("\n", "")
 
             labels = json.loads(json_str)
-            print(labels)
             return list({
                 str(label).lower().strip().replace(" ", "_")
                 for label in labels
@@ -98,3 +94,19 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
         except (json.JSONDecodeError, KeyError) as e:
             print(f"JSON Parsing Error: {e}, Response: {generated_text}")
             return []
+
+    def _parse_dict_response(self, response: BaseMessage) -> dict[str, dict[str, list[str]]]:
+        generated_text = response.content.strip()
+        if not generated_text:
+            print("Warning: Empty response content.")
+            return {}
+        try:
+            json_str = generated_text.replace("'", '"').replace("\n", "")
+            data = json.loads(json_str)
+            if not isinstance(data, dict):
+                print("Warning: Parsed response is not a dictionary.")
+                return {}
+            return data
+        except json.JSONDecodeError as e:
+            print(f"JSON Parsing Error: {e}, Response: {generated_text}")
+            return {}

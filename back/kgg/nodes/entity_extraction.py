@@ -1,17 +1,17 @@
 from abc import abstractmethod
-from typing import Optional, Any, List
+from typing import Optional, Any
 
 import spacy
 from gliner import GLiNER
 from langchain_core.runnables import Runnable, RunnableConfig
 
-from kgg.models import NERDocument, Entity, RawDocument, Schema
+from kgg.models import Entity, RawDocument, Schema
 
 
-class BaseEntitiesGenerator(Runnable[dict[str, RawDocument | Schema], NERDocument]):
+class BaseEntitiesGenerator(Runnable[dict[str, RawDocument | Schema], RawDocument]):
 
     @abstractmethod
-    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> NERDocument:
+    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> RawDocument:
         raise NotImplementedError()
 
 
@@ -21,7 +21,7 @@ class GLiNEREntitiesGenerator(BaseEntitiesGenerator):
         self.model = GLiNER.from_pretrained("urchade/gliner_large-v2.1")
         self.nlp = spacy.load("en_core_web_lg")
 
-    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> NERDocument:
+    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> RawDocument:
         text = input["document"].text
         doc = self.nlp(text)
         entities = self.model.predict_entities(text, input["schema"].labels, threshold=0.2, multi_label=True)
@@ -48,4 +48,5 @@ class GLiNEREntitiesGenerator(BaseEntitiesGenerator):
                         text=entity_text
                     )
                 )
-        return NERDocument(input["document"], extracted_entities)
+                print(extracted_entities)
+        return RawDocument(text=input["document"].text, entities=extracted_entities)

@@ -1,7 +1,5 @@
- MACOS
- cd /Users/evgenijanisimov/Downloads/build/bin
-./llama-server --model /Users/evgenijanisimov/infa/Python/models/Hermes-3-Llama-3.1-8B.Q8_0.gguf --host 0.0.0.0 --port 8080
 
+ ./llama-server --model /Users/evgenijanisimov/infa/Python/models/Hermes-3-Llama-3.1-8B.Q8_0.gguf --host 0.0.0.0 --port 8080
 
 
 docker build -t my-neo4j .

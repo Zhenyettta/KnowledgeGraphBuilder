@@ -1,10 +1,11 @@
 import os
 from dataclasses import asdict
 import streamlit as st
-from kgg.models import RawDocument, ER_instruction, NER_instruction
+from kgg.models import RawDocument, ER_instruction, NER_instruction, EXAMPLE_DOCUMENT1, EXAMPLE_ENTITIES1, \
+    EXAMPLE_RELATIONS1, NER_PROMPT
 from kgg.nodes.entity_extraction import GLiNEREntitiesGenerator
 from kgg.nodes.re_schema_generator import HTTPServerRelationSchemaGenerator
-from kgg.nodes.relations_extraction import GLiRELRelationsGenerator
+from kgg.nodes.relations_extraction import GLiRELRelationsGenerator, NewGLiRELRelationsGenerator
 from kgg.nodes.neo4j_loader import Neo4jRelationsInserter
 
 st.title("Автоматизація наповнення баз знань")
@@ -12,8 +13,8 @@ st.write("Завантажте файл, щоб розпочати обробк�
 
 if "processed_data" not in st.session_state:
     st.session_state.processed_data = None
-if "relation_document" not in st.session_state:
-    st.session_state.relation_document = None
+if "raw_doc" not in st.session_state:
+    st.session_state.raw_doc = None
 if "file_uploaded" not in st.session_state:
     st.session_state.file_uploaded = False
 
@@ -35,23 +36,26 @@ if uploaded_file and not st.session_state.file_uploaded:
 
     raw_doc = RawDocument(text=text)
 
-    ner_schema_generator = HTTPServerRelationSchemaGenerator(instruction=NER_instruction)
+    ner_schema_generator = HTTPServerRelationSchemaGenerator(prompt=NER_PROMPT)
     ner_schema = ner_schema_generator.invoke(raw_doc)
 
-    entities_generator = GLiNEREntitiesGenerator()
-    ner_document = entities_generator.invoke({"document": raw_doc, "schema": ner_schema})
 
-    relation_schema_generator = HTTPServerRelationSchemaGenerator(instruction=ER_instruction)
+    entities_generator = GLiNEREntitiesGenerator()
+    raw_doc = entities_generator.invoke({"document": raw_doc, "schema": ner_schema})
+
+
+    relation_schema_generator = HTTPServerRelationSchemaGenerator()
     relation_schema = relation_schema_generator.invoke(raw_doc)
 
-    relations_generator = GLiRELRelationsGenerator()
-    relation_document = relations_generator.invoke({"document": ner_document, "schema": relation_schema})
 
-    st.session_state.relation_document = relation_document
+    relations_generator = NewGLiRELRelationsGenerator()
+    raw_doc = relations_generator.invoke({"document": raw_doc, "schema": relation_schema})
 
-if st.session_state.relation_document:
+    st.session_state.raw_doc = raw_doc
+
+if st.session_state.raw_doc:
     st.write("Результати витягування відношень (GLiREL):")
-    st.json(asdict(st.session_state.relation_document))
+    st.json(asdict(st.session_state.raw_doc))
 
     neo4j_inserter = Neo4jRelationsInserter(user="neo4j", password="newPassword")
 
