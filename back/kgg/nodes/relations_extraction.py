@@ -3,6 +3,7 @@ from typing import Optional, Any
 
 import spacy
 import glirel
+import torch
 from glirel import GLiREL
 from langchain_core.runnables import Runnable, RunnableConfig
 
@@ -18,8 +19,9 @@ class BaseRelationsGenerator(Runnable[dict[str, RawDocument | Schema], RawDocume
 
 class GLiRELRelationsGenerator(BaseRelationsGenerator):
     def __init__(self):
+        device = torch.device("cpu")
         self.nlp = spacy.load("en_core_web_lg")
-        self.model = GLiREL.from_pretrained("jackboyla/glirel-large-v0")
+        self.model = GLiREL.from_pretrained("jackboyla/glirel-large-v0", device="cpu")
 
     def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> RawDocument:
         ner_document = input["document"]

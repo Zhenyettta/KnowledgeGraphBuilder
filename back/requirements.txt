@@ -3,9 +3,9 @@ torch==2.6.0
 numpy==1.26.3
 gliner==0.2.15
 glirel==1.0.1
-glirel==1.0.1
 loguru==0.7.3
 langchain==0.3.14
 langchain-core==0.3.34
 langchain_openai==0.3.4
 neo4j~=5.28.0
+kg-gen==0.1.6

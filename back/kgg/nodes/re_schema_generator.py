@@ -3,6 +3,7 @@ import re
 from abc import abstractmethod
 from typing import Optional, Any
 
+from kg_gen import KGGen
 from langchain_core.messages import BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableConfig
@@ -31,13 +32,13 @@ class ConstantRelationsSchemaGenerator(BaseRelationsSchemaGenerator):
 class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
     def __init__(
             self,
-            server_url: str = "http://localhost:8080",
+            server_url: str = "http://0.0.0.0:11434/v1",
             max_tokens: int = 2048,
             prompt: ChatPromptTemplate = None,
     ):
         self.server_url = server_url
         self.max_tokens = max_tokens
-        self.prompt = prompt or ER_NEW_PROMPT
+        self.prompt = prompt or ER_PROMPT
 
     def invoke(
             self,
@@ -52,7 +53,8 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
                 max_tokens=self.max_tokens,
                 timeout=300,
                 max_retries=1,
-                api_key=SecretStr("aboba")
+                api_key=SecretStr("ollama"),
+                model="ajindal/llama3.1-storm:8b-Q8_0",
 
             )
             response = llm.invoke(self.prompt.format_prompt(
@@ -110,3 +112,26 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
         except json.JSONDecodeError as e:
             print(f"JSON Parsing Error: {e}, Response: {generated_text}")
             return {}
+
+
+class KGGenGenerator(BaseRelationsSchemaGenerator):
+    def invoke(
+                self,
+                input: RawDocument,
+                config: Optional[RunnableConfig] = None,
+                **kwargs: Any
+        ) -> Schema:
+            try:
+                kg = KGGen(
+                    model="ollama/ajindal/llama3.1-storm:8b-Q8_0",
+                    temperature=1,
+                    api_key="ollama",
+                )
+                print(input.text)
+
+                graph_1 = kg.generate(input_data=input.text)
+                print(graph_1)
+
+            except Exception as e:
+                print(f"Error generating schema: {e}")
+            return Schema(labels=[])
