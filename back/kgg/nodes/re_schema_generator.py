@@ -123,9 +123,8 @@ class KGGenGenerator(BaseRelationsSchemaGenerator):
         ) -> Schema:
             try:
                 kg = KGGen(
-                    model="ollama/hermes3:8b-llama3.1-q6_K",
-                    temperature=1,
-                    api_key="ollama",
+                    model="ollama_chat/phi4:14b",
+                    temperature=0.0,
                 )
                 graph_1 = kg.generate(input_data=input.text)
                 print(graph_1)
