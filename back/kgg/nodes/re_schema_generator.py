@@ -1,7 +1,7 @@
 import json
 import re
 from abc import abstractmethod
-from typing import Optional, Any
+from typing import Optional, Any, Union
 
 from kg_gen import KGGen
 from langchain_core.messages import BaseMessage
@@ -120,15 +120,15 @@ class KGGenGenerator(BaseRelationsSchemaGenerator):
                 input: RawDocument,
                 config: Optional[RunnableConfig] = None,
                 **kwargs: Any
-        ) -> Schema:
+        ) -> RawDocument:
             try:
                 kg = KGGen(
-                    model="ollama_chat/phi4:14b",
+                    model="ollama_chat/ajindal/llama3.1-storm:8b-Q8_0",
                     temperature=0.0,
                 )
                 graph_1 = kg.generate(input_data=input.text)
-                print(graph_1)
-
+                return RawDocument(text=input.text, entities=graph_1.entities, relations=graph_1.relations)
             except Exception as e:
                 print(f"Error generating schema: {e}")
-            return Schema(labels=[])
+            return RawDocument(text=input.text, entities=[], relations=[]);
+

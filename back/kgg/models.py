@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Tuple
 
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
@@ -49,8 +49,8 @@ class Relation:
 class RawDocument:
     text: str
     metadata: dict[str, Any] = field(default_factory=dict)
-    entities: list[Entity] = field(default_factory=list)
-    relations: list[Relation] = field(default_factory=list)
+    entities: set[str] = field(default_factory=list)
+    relations: set[Tuple[str, str, str]] = field(default_factory=list)
 
 
 NER_instruction = """

@@ -72,7 +72,7 @@ if st.session_state.raw_doc:
     neo4j_inserter = Neo4jRelationsInserter(user="neo4j", password="newPassword")
 
     if st.button("Очистити базу даних Neo4j"):
-        clear_result = neo4j_inserter.clear_database()
+        clear_result = neo4j_inserter.clear()
         st.success(f"Результат очищення: {clear_result}")
 
     if st.button("Вставити дані у Neo4j"):
