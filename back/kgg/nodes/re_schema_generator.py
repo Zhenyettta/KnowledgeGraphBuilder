@@ -7,10 +7,11 @@ from kg_gen import KGGen
 from langchain_core.messages import BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_ollama import OllamaLLM
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
-from kgg.models import RawDocument, Schema, ER_PROMPT, ER_NEW_PROMPT
+from kgg.models import RawDocument, Schema, ER_PROMPT
 
 
 class BaseRelationsSchemaGenerator(Runnable[RawDocument, Schema]):
@@ -29,10 +30,11 @@ class ConstantRelationsSchemaGenerator(BaseRelationsSchemaGenerator):
         return self.schema
 
 
+
 class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
     def __init__(
             self,
-            server_url: str = "http://0.0.0.0:11434/v1",
+            server_url: str = "http://localhost:11434/v1/",
             max_tokens: int = 2048,
             prompt: ChatPromptTemplate = None,
     ):
@@ -72,6 +74,7 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
             print(f"Error generating schema: {e}")
             return Schema(labels=[])
 
+
     def _parse_response(self, response: BaseMessage) -> list[str]:
         generated_text = response.content.strip()
         if not generated_text:
@@ -84,9 +87,7 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
             return []
 
         try:
-            json_str = match.group(0)
-            json_str = json_str.replace("'", '"').replace("\n", "")
-
+            json_str = match.group(0).replace("'", '"').replace("\n", "")
             labels = json.loads(json_str)
             return list({
                 str(label).lower().strip().replace(" ", "_")
@@ -96,6 +97,7 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
         except (json.JSONDecodeError, KeyError) as e:
             print(f"JSON Parsing Error: {e}, Response: {generated_text}")
             return []
+
 
     def _parse_dict_response(self, response: BaseMessage) -> dict[str, dict[str, list[str]]]:
         generated_text = response.content.strip()
@@ -116,19 +118,19 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
 
 class KGGenGenerator(BaseRelationsSchemaGenerator):
     def invoke(
-                self,
-                input: RawDocument,
-                config: Optional[RunnableConfig] = None,
-                **kwargs: Any
-        ) -> RawDocument:
-            try:
-                kg = KGGen(
-                    model="ollama_chat/ajindal/llama3.1-storm:8b-Q8_0",
-                    temperature=0.0,
-                )
-                graph_1 = kg.generate(input_data=input.text)
-                return RawDocument(text=input.text, entities=graph_1.entities, relations=graph_1.relations)
-            except Exception as e:
-                print(f"Error generating schema: {e}")
-            return RawDocument(text=input.text, entities=[], relations=[]);
-
+            self,
+            input: RawDocument,
+            config: Optional[RunnableConfig] = None,
+            **kwargs: Any
+    ) -> RawDocument:
+        try:
+            kg = KGGen(
+                model="ollama_chat/phi4:14b-q4_K_M",
+                temperature=0.0,
+            )
+            graph_1 = kg.generate(input_data=input.text, cluster=True)
+            print(graph_1)
+            return RawDocument(text=input.text, entities=graph_1.entities, relations=graph_1.relations)
+        except Exception as e:
+            print(f"Error generating schema: {e}")
+        return RawDocument(text=input.text, entities=[], relations=[])

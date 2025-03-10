@@ -4,29 +4,9 @@ from typing import Any, Tuple
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
-labels = {"glirel_labels": {
-    "co-founder": {"allowed_head": ["PERSON"], "allowed_tail": ["ORG"]},
-    "no relation": {},  # head and tail can be any entity type
-    "country of origin": {"allowed_head": ["PERSON", "ORG"], "allowed_tail": ["LOC", "GPE"]},
-    "parent": {"allowed_head": ["PERSON"], "allowed_tail": ["PERSON"]},
-    "located in or next to body of water": {"allowed_head": ["LOC", "GPE", "FAC"], "allowed_tail": ["LOC", "GPE"]},
-    "spouse": {"allowed_head": ["PERSON"], "allowed_tail": ["PERSON"]},
-    "child": {"allowed_head": ["PERSON"], "allowed_tail": ["PERSON"]},
-    "founder": {"allowed_head": ["PERSON"], "allowed_tail": ["ORG"]},
-    "founded on date": {"allowed_head": ["ORG"], "allowed_tail": ["DATE"]},
-    "headquartered in": {"allowed_head": ["ORG"], "allowed_tail": ["LOC", "GPE", "FAC"]},
-    "acquired by": {"allowed_head": ["ORG"], "allowed_tail": ["ORG", "PERSON"]},
-    "subsidiary of": {"allowed_head": ["ORG"], "allowed_tail": ["ORG", "PERSON"]},
-    }
-}
-
 @dataclass
 class Schema:
-    labels: dict[str, dict[str, list[str]]]
-
-    @classmethod
-    def get_old_labels(cls):
-        return [key for group in cls.labels.values() for key, value in group.items() if value]
+    labels: list[str]
 
 
 @dataclass
@@ -35,15 +15,6 @@ class Entity:
     token_end_idx: int
     label: str
     text: str
-
-
-@dataclass
-class Relation:
-    head_text: str
-    tail_text: str
-    label: str
-    score: float
-
 
 @dataclass
 class RawDocument:
@@ -60,6 +31,7 @@ You are an expert annotator. Your task is to extract **entity labels** from unst
 - Return the labels as a **Python list** with single quotes around each label, enclosed in square brackets, and separated by commas.
 - Example output: `['person', 'organization', 'event']`.
 - Ensure no duplicates and no additional text outside the list.
+- Return labels in language that is equal to the input text language.
 """
 
 

@@ -35,6 +35,7 @@ class Neo4jRelationsInserter:
                 session.run("MERGE (e:Entity {name: $name})", name=entity_name)
             for head, rel_type, tail in input.relations:
                 rel_type = rel_type.replace(" ", "_").upper()
+                rel_type = rel_type.replace(" ", "_").replace("-", "_").upper()
                 query_str = f"""
                 MATCH (h:Entity {{name: $head}})
                 MATCH (t:Entity {{name: $tail}})
