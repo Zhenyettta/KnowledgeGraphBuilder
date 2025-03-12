@@ -4,7 +4,7 @@ import streamlit as st
 from kgg.models import RawDocument, ER_instruction, NER_instruction, EXAMPLE_DOCUMENT1, EXAMPLE_ENTITIES1, \
     EXAMPLE_RELATIONS1, NER_PROMPT
 from kgg.nodes.entity_extraction import GLiNEREntitiesGenerator
-from kgg.nodes.re_schema_generator import HTTPServerRelationSchemaGenerator, KGGenGenerator
+from kgg.nodes.re_schema_generator import HTTPServerRelationSchemaGenerator, KGGenGenerator, GLiNERRelationExtractor
 from kgg.nodes.relations_extraction import GLiRELRelationsGenerator
 from kgg.nodes.neo4j_loader import Neo4jRelationsInserter
 
@@ -20,14 +20,14 @@ if "file_uploaded" not in st.session_state:
 if "relation_document" not in st.session_state:
     st.session_state.relation_document = None
 
-uploaded_file = st.file_uploader("Завантажте текстовий файл", type=["txt", "docx", "pdf"])
+uploaded_file = st.file_uploader("Завантажте текстовий файл", type=["txt", "docx", "pdf"], path=UPLOADS_DIR)
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 
 # Select processing pipeline
 processing_option = st.radio(
     "Оберіть метод обробки:",
-    ("KGGenGenerator", "GLiNER + GLiREL")
+    ("KGGenGenerator", "GLiNER + GLiREL", "GLiNER + LLM")
 )
 
 if uploaded_file and not st.session_state.file_uploaded:
@@ -49,7 +49,7 @@ if uploaded_file and not st.session_state.file_uploaded:
     if processing_option == "KGGenGenerator":
         kggen = KGGenGenerator()
         processed_doc = kggen.invoke(raw_doc)
-    else:
+    elif processing_option == "GLiNER + GLiREL":
         ner_schema_generator = HTTPServerRelationSchemaGenerator(prompt=NER_PROMPT)
         ner_schema = ner_schema_generator.invoke(raw_doc)
 
@@ -61,6 +61,17 @@ if uploaded_file and not st.session_state.file_uploaded:
 
         relations_generator = GLiRELRelationsGenerator()
         processed_doc = relations_generator.invoke({"document": raw_doc, "schema": relation_schema})
+    else:  # GLiNER + LLM
+        ner_schema_generator = HTTPServerRelationSchemaGenerator(prompt=NER_PROMPT)
+        ner_schema = ner_schema_generator.invoke(raw_doc)
+
+        entities_generator = GLiNEREntitiesGenerator()
+        raw_doc = entities_generator.invoke({"document": raw_doc, "schema": ner_schema})
+
+        # Use LLM for relations instead of GLiREL
+        relation_schema_generator = GLiNERRelationExtractor()
+        processed_doc = relation_schema_generator.invoke(raw_doc)
+
 
     st.session_state.raw_doc = processed_doc
     st.session_state.relation_document = processed_doc

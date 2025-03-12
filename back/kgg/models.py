@@ -9,7 +9,7 @@ class Schema:
     labels: list[str]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Entity:
     token_start_idx: int
     token_end_idx: int
@@ -20,7 +20,7 @@ class Entity:
 class RawDocument:
     text: str
     metadata: dict[str, Any] = field(default_factory=dict)
-    entities: set[str] = field(default_factory=list)
+    entities: set[Entity] = field(default_factory=list)
     relations: set[Tuple[str, str, str]] = field(default_factory=list)
 
 
@@ -186,3 +186,102 @@ NER_PROMPT = ChatPromptTemplate.from_messages([
     AIMessage(EXAMPLE_NER_OUTPUT4),
     HumanMessagePromptTemplate.from_template("{user_input}")
 ])
+
+
+GLINER_LLM_INSTRUCTION = """
+You are an expert relation extractor. Your task is to identify relationships between entities that were already detected in the text.
+
+Given:
+1. The original text
+2. A list of already extracted entities with their labels
+3. The position of these entities in the text
+
+Your task is to:
+1. Analyze the relationships between the provided entities
+2. Generate a structured output of relations
+3. Only use the entities that were actually detected - do not invent new ones
+4. Ensure relations are directional (head -> tail)
+
+Output format:
+{
+    "relations": [
+        {
+            "head": {"text": "entity_text", "label": "entity_label"},
+            "tail": {"text": "entity_text", "label": "entity_label"},
+            "relation": "relation_type"
+        }
+    ]
+}
+"""
+
+EXAMPLE_GLINER_INPUT1 = """
+Text: Radio City is India's first private FM radio station and was started on 3 July 2001.
+
+Detected entities:
+- Radio City (company) [0:10]
+- India (country) [14:19]
+- 3 July 2001 (date) [63:74]
+"""
+
+EXAMPLE_GLINER_OUTPUT1 = """{
+    "relations": [
+        {
+            "head": {"text": "Radio City", "label": "company"},
+            "tail": {"text": "India", "label": "country"},
+            "relation": "located_in"
+        },
+        {
+            "head": {"text": "Radio City", "label": "company"},
+            "tail": {"text": "3 July 2001", "label": "date"},
+            "relation": "established_on"
+        }
+    ]
+}"""
+
+EXAMPLE_GLINER_INPUT2 = """
+Text: SpaceX, founded by Elon Musk in 2002, launched its Starlink project from Cape Canaveral.
+
+Detected entities:
+- SpaceX (company) [0:6]
+- Elon Musk (person) [19:28]
+- 2002 (date) [32:36]
+- Starlink (project) [51:59]
+- Cape Canaveral (location) [65:78]
+"""
+
+EXAMPLE_GLINER_OUTPUT2 = """{
+    "relations": [
+        {
+            "head": {"text": "SpaceX", "label": "company"},
+            "tail": {"text": "Elon Musk", "label": "person"},
+            "relation": "founded_by"
+        },
+        {
+            "head": {"text": "SpaceX", "label": "company"},
+            "tail": {"text": "2002", "label": "date"},
+            "relation": "founded_on"
+        },
+        {
+            "head": {"text": "SpaceX", "label": "company"},
+            "tail": {"text": "Starlink", "label": "project"},
+            "relation": "launched"
+        },
+        {
+            "head": {"text": "Starlink", "label": "project"},
+            "tail": {"text": "Cape Canaveral", "label": "location"},
+            "relation": "launched_from"
+        }
+    ]
+}"""
+
+GLINER_LLM_PROMPT = ChatPromptTemplate.from_messages([
+    SystemMessage(GLINER_LLM_INSTRUCTION),
+    HumanMessage(EXAMPLE_GLINER_INPUT1),
+    AIMessage(EXAMPLE_GLINER_OUTPUT1),
+    HumanMessage(EXAMPLE_GLINER_INPUT2),
+    AIMessage(EXAMPLE_GLINER_OUTPUT2),
+    HumanMessagePromptTemplate.from_template(
+        "Text: {text}\n\nDetected entities:\n{entities}"
+    )
+])
+

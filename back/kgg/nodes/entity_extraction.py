@@ -48,4 +48,4 @@ class GLiNEREntitiesGenerator(BaseEntitiesGenerator):
                         text=entity_text
                     )
                 )
-        return RawDocument(text=input["document"].text, entities=extracted_entities)
+        return RawDocument(text=input["document"].text, entities=set(extracted_entities))
