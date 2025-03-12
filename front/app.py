@@ -8,10 +8,7 @@ import streamlit as st
 from kgg import config
 from kgg.generator import KnowledgeGraphGenerator
 from kgg.models import Document, KnowledgeGraph
-from kgg.nodes.entity_extraction import GLiNEREntitiesGenerator
 from kgg.nodes.neo4j_loader import Neo4jRelationsInserter
-from kgg.nodes.re_schema_generator import HTTPServerRelationSchemaGenerator, GLiNERRelationExtractor
-from kgg.nodes.relations_extraction import GLiRELRelationsGenerator
 from kgg.prompts import NER_PROMPT
 from kgg.config import KGGConfig
 
@@ -61,11 +58,11 @@ def initialize_sidebar_config():
             value=st.session_state.config.encoder_model
         )
 
-        st.session_state.config.entity_threshold = st.slider(
-            "Entity Threshold",
+        st.session_state.config.ner_threshold = st.slider(
+            "NER Threshold",
             min_value=0.0,
             max_value=1.0,
-            value=st.session_state.config.entity_threshold,
+            value=st.session_state.config.ner_threshold,
             step=0.05
         )
 
@@ -84,33 +81,33 @@ def initialize_sidebar_config():
 
 
 
-def process_file_with_gliner_glirel(raw_doc):
-    ner_schema_generator = HTTPServerRelationSchemaGenerator(prompt=NER_PROMPT)
-    ner_schema = ner_schema_generator.invoke(raw_doc)
-
-    entities_generator = GLiNEREntitiesGenerator()
-    doc_with_entities = entities_generator.invoke({"document": raw_doc, "schema": ner_schema})
-
-    relation_schema_generator = HTTPServerRelationSchemaGenerator()
-    relation_schema = relation_schema_generator.invoke(doc_with_entities)
-
-    relations_generator = GLiRELRelationsGenerator()
-    processed_doc = relations_generator.invoke({"document": doc_with_entities, "schema": relation_schema})
-
-    return processed_doc
-
-
-def process_file_with_gliner_llm(raw_doc):
-    ner_schema_generator = HTTPServerRelationSchemaGenerator(prompt=NER_PROMPT)
-    ner_schema = ner_schema_generator.invoke(raw_doc)
-
-    entities_generator = GLiNEREntitiesGenerator()
-    doc_with_entities = entities_generator.invoke({"document": raw_doc, "schema": ner_schema})
-
-    relation_extractor = GLiNERRelationExtractor()
-    processed_doc = relation_extractor.invoke(doc_with_entities)
-
-    return processed_doc
+# def process_file_with_gliner_glirel(raw_doc):
+#     ner_schema_generator = HTTPServerRelationSchemaGenerator(prompt=NER_PROMPT)
+#     ner_schema = ner_schema_generator.invoke(raw_doc)
+#
+#     entities_generator = GLiNEREntitiesGenerator()
+#     doc_with_entities = entities_generator.invoke({"document": raw_doc, "schema": ner_schema})
+#
+#     relation_schema_generator = HTTPServerRelationSchemaGenerator()
+#     relation_schema = relation_schema_generator.invoke(doc_with_entities)
+#
+#     relations_generator = GLiRELRelationsGenerator()
+#     processed_doc = relations_generator.invoke({"document": doc_with_entities, "schema": relation_schema})
+#
+#     return processed_doc
+#
+#
+# def process_file_with_gliner_llm(raw_doc):
+#     ner_schema_generator = HTTPServerRelationSchemaGenerator(prompt=NER_PROMPT)
+#     ner_schema = ner_schema_generator.invoke(raw_doc)
+#
+#     entities_generator = GLiNEREntitiesGenerator()
+#     doc_with_entities = entities_generator.invoke({"document": raw_doc, "schema": ner_schema})
+#
+#     relation_extractor = GLiNERRelationExtractor()
+#     processed_doc = relation_extractor.invoke(doc_with_entities)
+#
+#     return processed_doc
 
 
 def parse_jsonl_file(filepath: str) -> list[Document]:
@@ -190,7 +187,7 @@ def main():
 
         processed_doc = parse_uploaded_file(os.path.join(uploads_dir, uploaded_file.name))
         generator = KnowledgeGraphGenerator(st.session_state.config)
-        generator.generate(documents=[])
+        generator.generate(documents=processed_doc)
 
         # TODO
 
@@ -205,10 +202,10 @@ def main():
         # TODO 9: Generate an answer based on the retrieved documents (optinal, but recommended)
 
         #TODO move to separate function (generate in graph) use
-        if processing_option == "GLiNER + GLiREL":
-            processed_doc = process_file_with_gliner_glirel(processed_doc)
-        else:
-            processed_doc = process_file_with_gliner_llm(processed_doc)
+        # if processing_option == "GLiNER + GLiREL":
+        #     processed_doc = process_file_with_gliner_glirel(processed_doc)
+        # else:
+        #     processed_doc = process_file_with_gliner_llm(processed_doc)
 
         st.session_state.raw_doc = processed_doc
         st.session_state.relation_document = processed_doc

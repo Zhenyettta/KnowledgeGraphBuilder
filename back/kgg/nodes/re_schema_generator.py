@@ -10,7 +10,7 @@ from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
-from kgg.models import Document, Schema, Entity, KnowledgeGraph
+from kgg.models import Document, Entity, KnowledgeGraph
 from kgg.prompts import ER_PROMPT, GLINER_LLM_PROMPT
 
 
@@ -21,7 +21,7 @@ class BaseRelationsSchemaGenerator(Runnable[Document, Schema]):
 
 
 class ConstantRelationsSchemaGenerator(BaseRelationsSchemaGenerator):
-    def __init__(self, schema: list[str] | Schema):
+    def __init__(self, schema: list[str]):
         if isinstance(schema, list):
             schema = Schema(schema)
         self.schema = schema
@@ -30,46 +30,7 @@ class ConstantRelationsSchemaGenerator(BaseRelationsSchemaGenerator):
         return self.schema
 
 #TODO change to use new Object
-class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
-    def __init__(
-            self,
-            server_url: str = "http://localhost:11434/v1/",
-            max_tokens: int = 2048,
-            prompt: ChatPromptTemplate = None,
-    ):
-        self.server_url = server_url
-        self.max_tokens = max_tokens
-        self.prompt = prompt or ER_PROMPT
 
-    def invoke(
-            self,
-            input: KnowledgeGraph,
-            config: Optional[RunnableConfig] = None,
-            **kwargs: Any
-    ) -> Schema:
-        try:
-            llm = ChatOpenAI(
-                base_url=self.server_url,
-                temperature=0.0,
-                max_tokens=self.max_tokens,
-                timeout=300,
-                max_retries=1,
-                api_key=SecretStr("ollama"),
-                model="phi4:14b-q4_K_M",
-
-            )
-            response = llm.invoke(self.prompt.format_prompt(
-                user_input=input.text,
-                entities=[x.text for x in input.entities]
-            ))
-            print(response)
-            labels = self._parse_response(response)
-            print(labels)
-            return Schema(labels=labels)
-
-        except Exception as e:
-            print(f"Error generating schema: {e}")
-            return Schema(labels=[])
 
     def _parse_response(self, response: BaseMessage) -> list[str]:
         generated_text = response.content.strip()
@@ -94,21 +55,6 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
             print(f"JSON Parsing Error: {e}, Response: {generated_text}")
             return []
 
-    def _parse_dict_response(self, response: BaseMessage) -> dict[str, dict[str, list[str]]]:
-        generated_text = response.content.strip()
-        if not generated_text:
-            print("Warning: Empty response content.")
-            return {}
-        try:
-            json_str = generated_text.replace("'", '"').replace("\n", "")
-            data = json.loads(json_str)
-            if not isinstance(data, dict):
-                print("Warning: Parsed response is not a dictionary.")
-                return {}
-            return data
-        except json.JSONDecodeError as e:
-            print(f"JSON Parsing Error: {e}, Response: {generated_text}")
-            return {}
 
 
 class KGGenGenerator(BaseRelationsSchemaGenerator):

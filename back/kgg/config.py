@@ -16,6 +16,6 @@ class KGGConfig:
     max_tokens: int = 4096
     use_old_approach: bool = False
     ner_labels: list[str] = field(default_factory=list)
-    sample_size_ner_labels: int = 10
+    sample_size_ner_labels: int = 2
 
 

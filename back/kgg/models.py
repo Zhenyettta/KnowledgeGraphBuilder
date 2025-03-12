@@ -2,10 +2,6 @@ from dataclasses import dataclass, field
 from typing import Any, Tuple
 
 
-@dataclass
-class Schema:
-    labels: list[str]
-
 
 @dataclass(frozen=True)
 class Entity:
