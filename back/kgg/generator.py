@@ -1,0 +1,60 @@
+import spacy
+from gliner import GLiNER
+from langchain_openai import ChatOpenAI
+
+from kgg.config import KGGConfig
+from kgg.models import Document, KnowledgeGraph, Schema
+from kgg.prompts import *
+
+#TODO old pipeline based on config
+class KnowledgeGraphGenerator:
+    # TODO somehow pass the configuration or whatever
+    def __init__(self, config: KGGConfig):
+        # TODO here we should create a langchain chain based on the configuration
+
+        self.config = config
+        self.model = GLiNER.from_pretrained("urchade/gliner_large-v2.1")
+        self.nlp = spacy.load("en_core_web_lg")
+        self.llm = ChatOpenAI(
+            base_url=config.server_url,
+            temperature=0.0,
+            max_tokens=config.max_tokens,
+            timeout=300,
+            max_retries=1,
+            api_key=config.api_key,
+            model=config.llm_model,
+        )
+
+    def generate(self, documents: list[Document]) -> KnowledgeGraph:
+        # TODO 1: if ner_labels not present, use your step to generate them
+        #               * sample N documents and generate all possible entity labels for them
+        #               * create a unique set of labels aggregating all generated labels
+        #               * sort them and store in a list!
+        # TODO 2: use gliner and ner_labels to generate entities, then populate document objects with generated entities (pay attention to storing document ids and so on..)
+        # TODO 3: use llm and generated entities to generate relations, then populate document objects with them (same here)
+        # TODO 4: add clustering step (for now it will not merge entities, but it should create Node and Edge objects, they in turn should contain a list of Entity and Relation objects)
+        # TODO 5: create a KnowledgeGraph object containing the list of documents and list of nodes and edges
+        pass  print(self.config)
+
+
+    def generate_labels(self, documents: list[Document]) -> Schema:
+        response = self.llm.invoke(NER_PROMPT.format_prompt(
+            user_input=input.text,
+        ))
+        labels = self._parse_response(response)
+        return Schema(labels=labels)
+
+
+
+
+    # ner_schema_generator = HTTPServerRelationSchemaGenerator(prompt=NER_PROMPT)
+    # ner_schema = ner_schema_generator.invoke(raw_doc)
+    #
+    # entities_generator = GLiNEREntitiesGenerator()
+    # doc_with_entities = entities_generator.invoke({"document": raw_doc, "schema": ner_schema})
+    #
+    # relation_schema_generator = HTTPServerRelationSchemaGenerator()
+    # relation_schema = relation_schema_generator.invoke(doc_with_entities)
+    #
+    # relations_generator = GLiRELRelationsGenerator()
+    # processed_doc = relations_generator.invoke({"document": doc_with_entities, "schema": relation_schema})
