@@ -8,12 +8,12 @@ from glirel import GLiREL
 from langchain_core.runnables import Runnable, RunnableConfig
 
 from build.lib.kgg.models import Relation
-from kgg.models import RawDocument, Schema
+from kgg.models import Document, Schema
 
 
-class BaseRelationsGenerator(Runnable[dict[str, RawDocument | Schema], RawDocument]):
+class BaseRelationsGenerator(Runnable[dict[str, Document | Schema], Document]):
     @abstractmethod
-    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> RawDocument:
+    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Document:
         raise NotImplementedError()
 
 
@@ -22,7 +22,7 @@ class GLiRELRelationsGenerator(BaseRelationsGenerator):
         self.nlp = spacy.load("en_core_web_lg")
         self.model = GLiREL.from_pretrained("jackboyla/glirel-large-v0")
 
-    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> RawDocument:
+    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Document:
         ner_document = input["document"]
         text = ner_document.text
         ner = [[e.token_start_idx, e.token_end_idx, e.label, e.text] for e in ner_document.entities]
@@ -42,4 +42,4 @@ class GLiRELRelationsGenerator(BaseRelationsGenerator):
             for r in sorted_relations
         }
 
-        return RawDocument(text=ner_document.text, entities=ner_document.entities, relations=relations)
+        return Document(text=ner_document.text, entities=ner_document.entities, relations=relations)

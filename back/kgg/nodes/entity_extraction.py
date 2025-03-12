@@ -5,23 +5,24 @@ import spacy
 from gliner import GLiNER
 from langchain_core.runnables import Runnable, RunnableConfig
 
-from kgg.models import Entity, RawDocument, Schema
+from kgg.models import Entity, Document, KnowledgeGraph
 
 
-class BaseEntitiesGenerator(Runnable[dict[str, RawDocument | Schema], RawDocument]):
+class BaseEntitiesGenerator(Runnable[dict[str, KnowledgeGraph], Document]):
 
     @abstractmethod
-    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> RawDocument:
+    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Document:
         raise NotImplementedError()
 
 
+# TODO to use new object
 class GLiNEREntitiesGenerator(BaseEntitiesGenerator):
 
     def __init__(self):
         self.model = GLiNER.from_pretrained("urchade/gliner_large-v2.1")
         self.nlp = spacy.load("en_core_web_lg")
 
-    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> RawDocument:
+    def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Document:
         text = input["document"].text
         doc = self.nlp(text)
         entities = self.model.predict_entities(text, input["schema"].labels, threshold=0.2, multi_label=True)
@@ -48,4 +49,4 @@ class GLiNEREntitiesGenerator(BaseEntitiesGenerator):
                         text=entity_text
                     )
                 )
-        return RawDocument(text=input["document"].text, entities=set(extracted_entities))
+        return Document(text=input["document"].text, entities=set(extracted_entities))

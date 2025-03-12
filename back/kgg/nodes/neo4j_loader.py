@@ -1,9 +1,9 @@
 from typing import Optional, Any, Dict, Tuple, Set
 from neo4j import GraphDatabase, Query
 from langchain_core.runnables import Runnable, RunnableConfig
-from kgg.models import RawDocument
+from kgg.models import Document
 
-class BaseNeo4jLoader(Runnable[RawDocument, Dict[str, Any]]):
+class BaseNeo4jLoader(Runnable[Document, Dict[str, Any]]):
     def __init__(
         self,
         bolt_uri: str = "bolt://localhost:7687",
@@ -16,7 +16,7 @@ class BaseNeo4jLoader(Runnable[RawDocument, Dict[str, Any]]):
 
     def invoke(
         self,
-        input: RawDocument,
+        input: Document,
         config: Optional[RunnableConfig] = None,
         **kwargs: Any
     ) -> Dict[str, Any]:
@@ -28,7 +28,7 @@ class Neo4jRelationsInserter:
 
     def invoke(
         self,
-        input: RawDocument
+        input: Document
     ):
         with self.driver.session() as session:
             for entity_name in input.entities:

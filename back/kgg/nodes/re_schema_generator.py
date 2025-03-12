@@ -1,7 +1,7 @@
 import json
 import re
 from abc import abstractmethod
-from typing import Optional, Any, Union
+from typing import Optional, Any
 
 from kg_gen import KGGen
 from langchain_core.messages import BaseMessage
@@ -10,12 +10,13 @@ from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
-from kgg.models import RawDocument, Schema, ER_PROMPT, GLINER_LLM_PROMPT, Entity
+from kgg.models import Document, Schema, Entity, KnowledgeGraph
+from kgg.prompts import ER_PROMPT, GLINER_LLM_PROMPT
 
 
-class BaseRelationsSchemaGenerator(Runnable[RawDocument, Schema]):
+class BaseRelationsSchemaGenerator(Runnable[Document, Schema]):
     @abstractmethod
-    def invoke(self, input: RawDocument, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Schema:
+    def invoke(self, input: Document, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Schema:
         raise NotImplementedError()
 
 
@@ -28,8 +29,7 @@ class ConstantRelationsSchemaGenerator(BaseRelationsSchemaGenerator):
     def invoke(self, *args: Any, **kwargs: Any) -> Schema:
         return self.schema
 
-
-
+#TODO change to use new Object
 class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
     def __init__(
             self,
@@ -43,7 +43,7 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
 
     def invoke(
             self,
-            input: RawDocument,
+            input: KnowledgeGraph,
             config: Optional[RunnableConfig] = None,
             **kwargs: Any
     ) -> Schema:
@@ -71,7 +71,6 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
             print(f"Error generating schema: {e}")
             return Schema(labels=[])
 
-
     def _parse_response(self, response: BaseMessage) -> list[str]:
         generated_text = response.content.strip()
         if not generated_text:
@@ -95,7 +94,6 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
             print(f"JSON Parsing Error: {e}, Response: {generated_text}")
             return []
 
-
     def _parse_dict_response(self, response: BaseMessage) -> dict[str, dict[str, list[str]]]:
         generated_text = response.content.strip()
         if not generated_text:
@@ -116,10 +114,10 @@ class HTTPServerRelationSchemaGenerator(BaseRelationsSchemaGenerator):
 class KGGenGenerator(BaseRelationsSchemaGenerator):
     def invoke(
             self,
-            input: RawDocument,
+            input: Document,
             config: Optional[RunnableConfig] = None,
             **kwargs: Any
-    ) -> RawDocument:
+    ) -> Document:
         try:
             kg = KGGen(
                 model="ollama_chat/phi4:14b-q4_K_M",
@@ -127,14 +125,13 @@ class KGGenGenerator(BaseRelationsSchemaGenerator):
             )
             graph_1 = kg.generate(input_data=input.text)
             print(graph_1)
-            return RawDocument(text=input.text, entities=graph_1.entities, relations=graph_1.relations)
+            return Document(text=input.text, entities=graph_1.entities, relations=graph_1.relations)
         except Exception as e:
             print(f"Error generating schema: {e}")
-        return RawDocument(text=input.text, entities=[], relations=[])
+        return Document(text=input.text, entities=[], relations=[])
 
 
-
-class GLiNERRelationExtractor(Runnable[RawDocument, RawDocument]):
+class GLiNERRelationExtractor(Runnable[Document, Document]):
     def __init__(
             self,
             server_url: str = "http://localhost:11434/v1/",
@@ -147,10 +144,10 @@ class GLiNERRelationExtractor(Runnable[RawDocument, RawDocument]):
 
     def invoke(
             self,
-            input: RawDocument,
+            input: Document,
             config: Optional[RunnableConfig] = None,
             **kwargs: Any
-    ) -> RawDocument:
+    ) -> Document:
         try:
             llm = ChatOpenAI(
                 base_url=self.server_url,
@@ -170,11 +167,11 @@ class GLiNERRelationExtractor(Runnable[RawDocument, RawDocument]):
             print(response)
 
             relations = self._parse_response(response)
-            return RawDocument(text=input.text, entities=input.entities, relations=relations)
+            return Document(text=input.text, entities=input.entities, relations=relations)
 
         except Exception as e:
             print(f"Error extracting relations: {e}")
-            return RawDocument(text=input.text, entities=input.entities, relations=set())
+            return Document(text=input.text, entities=input.entities, relations=set())
 
     def _format_entities(self, entities: set[Entity]) -> str:
         formatted = []
@@ -220,8 +217,8 @@ class GLiNERRelationExtractor(Runnable[RawDocument, RawDocument]):
 
     def batch(
             self,
-            inputs: list[RawDocument],
+            inputs: list[Document],
             config: Optional[RunnableConfig] = None,
             **kwargs: Any
-    ) -> list[RawDocument]:
+    ) -> list[Document]:
         return [self.invoke(doc, config, **kwargs) for doc in inputs]
