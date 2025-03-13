@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Tuple
-
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -11,7 +10,6 @@ class Entity:
     end_idx: int
     label: str
     text: str
-
 
 @dataclass(frozen=True)
 class Relation:
@@ -33,7 +31,31 @@ class Document:
 
 
 @dataclass
+class Node:
+    id: str
+    entities: list[Entity] = field(default_factory=list)
+
+    @property
+    def text(self):
+        # Assumes all entities have the same text
+        return self.entities[0].text
+
+
+@dataclass
+class Edge:
+    id: str
+    head: Node
+    tail: Node
+    relation: Relation
+
+    @property
+    def description(self):
+        return self.relation.description
+
+
+@dataclass
 class KnowledgeGraph:
     documents: list[Document]
-    # TODO the rest of the data (nodes, edges)
+    nodes: list[Node]
+    edges: list[Edge]
 

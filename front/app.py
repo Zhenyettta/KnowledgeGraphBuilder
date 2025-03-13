@@ -195,17 +195,12 @@ def main():
         # TODO 2: Create KnowledgeGraphGenerator using the configuration
         # TODO 3: Generate knowledge graph
         # TODO 4: Cache knowledge graph on the disk (optional)
+        # TODO 5: fix app py
         # TODO 5: Change the state of the application to retrieval mode
         # TODO 6: Create KnowledgeGraphRetriever using the configuration (it should have connections to DBs)
         # TODO 7: Index the knowledge graph using KnowledgeGraphRetriever
         # TODO 8: Get question from the user and retrieve the relevant documents
         # TODO 9: Generate an answer based on the retrieved documents (optinal, but recommended)
-
-        #TODO move to separate function (generate in graph) use
-        # if processing_option == "GLiNER + GLiREL":
-        #     processed_doc = process_file_with_gliner_glirel(processed_doc)
-        # else:
-        #     processed_doc = process_file_with_gliner_llm(processed_doc)
 
         st.session_state.raw_doc = processed_doc
         st.session_state.relation_document = processed_doc

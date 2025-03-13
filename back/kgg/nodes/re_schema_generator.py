@@ -123,9 +123,9 @@ class GLiNERRelationExtractor(Runnable[Document, Document]):
         formatted = []
         for entity in entities:
             formatted.append(
-                f"- {entity.text} ({entity.label}) [{entity.token_start_idx}:{entity.token_end_idx}]"
+                f"- {entity.text} ({entity.label})"
             )
-        return "\n".join(formatted)
+        return "\n" + "\n".join(formatted)
 
     def _parse_response(self, response: BaseMessage) -> set[tuple[str, str, str]]:
         try:

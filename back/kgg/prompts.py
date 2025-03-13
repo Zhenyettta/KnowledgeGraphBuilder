@@ -160,25 +160,30 @@ EXAMPLE_GLINER_OUTPUT2 = """
         {
             "head": {"text": "SpaceX", "label": "company"},
             "tail": {"text": "Elon Musk", "label": "person"},
-            "relation": "founded_by"
+            "relation": "founded_by",
+            "description": "SpaceX was founded by Elon Musk"
         },
         {
             "head": {"text": "SpaceX", "label": "company"},
             "tail": {"text": "2002", "label": "date"},
-            "relation": "founded_on"
+            "relation": "founded_on",
+            "description": "SpaceX was founded in 2002"
         },
         {
             "head": {"text": "SpaceX", "label": "company"},
             "tail": {"text": "Starlink", "label": "project"},
-            "relation": "launched"
+            "relation": "launched",
+            "description": "SpaceX launched its Starlink project"
         },
         {
             "head": {"text": "Starlink", "label": "project"},
             "tail": {"text": "Cape Canaveral", "label": "location"},
-            "relation": "launched_from"
+            "relation": "launched_from",
+            "description": "Starlink project was launched from Cape Canaveral"
         }
-    ]
+]
 """
+
 
 # --------------------- Prompt Templates ---------------------
 ER_PROMPT = ChatPromptTemplate.from_messages([

@@ -2,8 +2,6 @@ from abc import abstractmethod
 from typing import Optional, Any, Set, Tuple
 
 import spacy
-import glirel
-import torch
 from glirel import GLiREL
 from langchain_core.runnables import Runnable, RunnableConfig
 
