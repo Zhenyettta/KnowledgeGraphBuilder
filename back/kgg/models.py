@@ -5,8 +5,10 @@ from typing import Any, Tuple
 
 @dataclass(frozen=True)
 class Entity:
-    token_start_idx: int
-    token_end_idx: int
+    id: str
+    document_id: str
+    start_idx: int
+    end_idx: int
     label: str
     text: str
 
@@ -18,10 +20,12 @@ class Relation:
     head: Entity
     tail: Entity
     relation: str
+    description: str
 
 
 @dataclass
-class RawDocument:
+class Document:
+    id: str
     text: str
     metadata: dict[str, Any] = field(default_factory=dict)
     entities: set[Entity] = field(default_factory=set)

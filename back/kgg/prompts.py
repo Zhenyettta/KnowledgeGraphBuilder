@@ -40,32 +40,6 @@ You are an expert annotator. Your task is to extract **relation labels** between
 - Ensure no duplicates and no additional text outside the list.
 """
 
-GLINER_LLM_INSTRUCTION = """
-You are an expert relation extractor. Your task is to identify relationships between entities that were already detected in the text.
-
-Given:
-1. The original text
-2. A list of already extracted entities with their labels
-3. The position of these entities in the text
-
-Your task is to:
-1. Analyze the relationships between the provided entities
-2. Generate a structured output of relations
-3. Only use the entities that were actually detected - do not invent new ones
-4. Ensure relations are directional (head -> tail)
-
-Output format:
-{
-    "relations": [
-        {
-            "head": {"text": "entity_text", "label": "entity_label"},
-            "tail": {"text": "entity_text", "label": "entity_label"},
-            "relation": "relation_type"
-        }
-    ]
-}
-"""
-
 # --------------------- NER Examples ---------------------
 EXAMPLE_TEXT2 = """
 At the International Innovation Conference in San Francisco on 10 August 2019, renowned entrepreneur Elon Musk, CEO of SpaceX, and Bill Gates, co-founder of Microsoft, engaged in a high-stakes discussion on breakthroughs in artificial intelligence and renewable energy. In a separate keynote, Google announced its acquisition of YouTube in 2006, marking a pivotal moment in digital media history.
@@ -110,43 +84,79 @@ EXAMPLE_RELATIONS4 = """['merged_with', 'created', 'valued_at', 'negotiated_by',
 
 # --------------------- GLINER Examples ---------------------
 
-EXAMPLE_GLINER_INPUT1 = """
-Text: Radio City is India's first private FM radio station and was started on 3 July 2001.
+GLINER_LLM_INSTRUCTION = """
+You are an expert relation extractor. Your task is to identify relationships between entities that were already detected in the text.
 
-Detected entities:
-- Radio City (company) [0:10]
-- India (country) [14:19]
-- 3 July 2001 (date) [63:74]
+Given:
+1. The original text
+2. A list of already extracted entities with their labels
+3. The position of these entities in the text
+
+Your task is to:
+1. Analyze the relationships between the provided entities
+2. Generate a structured output of relations
+3. Only use the entities that were actually detected - do not invent new ones
+4. Ensure relations are directional (head -> tail)
+5. For each relation generate short and brief description, including both entities and the relationship type, and any additional context, but only if relevant
+
+Output format:
+[
+    {
+        "head": {"text": "entity_text", "label": "entity_label"},
+        "tail": {"text": "entity_text", "label": "entity_label"},
+        "relation": "relation_type",
+        "description": "Short description of the relationship"
+    }
+]
 """
 
-EXAMPLE_GLINER_OUTPUT1 = """{
-    "relations": [
+EXAMPLE_GLINER_INPUT1 = """
+Text: Radio City is India's first private FM radio station, launching the first broadcast in the late evening on 3 July 2001.
+
+Detected entities:
+- Radio City (organization)
+- India (country)
+- FM radio station (organization type)
+- 3 July 2001 (date)
+"""
+
+
+EXAMPLE_GLINER_OUTPUT1 = """
+ [
         {
-            "head": {"text": "Radio City", "label": "company"},
+            "head": {"text": "Radio City", "label": "organization"},
             "tail": {"text": "India", "label": "country"},
-            "relation": "located_in"
+            "relation": "located_in",
+            "description": "Radio City is located in India"
         },
         {
-            "head": {"text": "Radio City", "label": "company"},
+            "head": {"text": "Radio City", "label": "organization"},
             "tail": {"text": "3 July 2001", "label": "date"},
-            "relation": "established_on"
+            "relation": "established_on",
+            "description": "Radio City was launched in the late evening on 3 July 2001"
+        },
+        {
+            "head": {"text": "Radio City", "label": "organization"},
+            "tail": {"text": "FM radio station", "label": "organization type"},
+            "relation": "instance_of",
+            "description": "Radio City is a private FM radio station"
         }
-    ]
-}"""
+]
+"""
 
 EXAMPLE_GLINER_INPUT2 = """
 Text: SpaceX, founded by Elon Musk in 2002, launched its Starlink project from Cape Canaveral.
 
 Detected entities:
-- SpaceX (company) [0:6]
-- Elon Musk (person) [19:28]
-- 2002 (date) [32:36]
-- Starlink (project) [51:59]
-- Cape Canaveral (location) [65:78]
+- SpaceX (company)
+- Elon Musk (person)
+- 2002 (date)
+- Starlink (project)
+- Cape Canaveral (location)
 """
 
-EXAMPLE_GLINER_OUTPUT2 = """{
-    "relations": [
+EXAMPLE_GLINER_OUTPUT2 = """
+[
         {
             "head": {"text": "SpaceX", "label": "company"},
             "tail": {"text": "Elon Musk", "label": "person"},
@@ -168,7 +178,7 @@ EXAMPLE_GLINER_OUTPUT2 = """{
             "relation": "launched_from"
         }
     ]
-}"""
+"""
 
 # --------------------- Prompt Templates ---------------------
 ER_PROMPT = ChatPromptTemplate.from_messages([

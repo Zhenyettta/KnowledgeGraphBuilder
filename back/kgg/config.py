@@ -6,7 +6,8 @@ from pydantic import SecretStr
 @dataclass
 class KGGConfig:
     # FIXME better attribute names
-    gliner_model: str = 'gliner/gliner-multi-v2.1'
+    gliner_model: str = 'urchade/gliner_large-v2.1'
+    spacy_model: str = 'en_core_web_lg'
     llm_model: str = 'phi4:14b-q4_K_M'
     server_url: str = 'http://localhost:11434/v1/'
     api_key: SecretStr = SecretStr("ollama")
