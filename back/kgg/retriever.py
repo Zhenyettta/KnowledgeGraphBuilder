@@ -1,17 +1,45 @@
-from kgg.models import Document, KnowledgeGraph
-from kgg.io.graph import GraphDatabase, VectorDatabase
+import faiss
+from langchain_community.docstore.in_memory import InMemoryDocstore
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_core.documents import Document
+
+from kgg.models import KnowledgeGraph
 
 
 class KnowledgeGraphRetriever:
     # FIXME it should rather instantiate databases on its own, not receive them as arguments
-    def __init__(self, ...):  # TODO whatever else needed, config, so on..
+    def __init__(self):  # TODO whatever else needed, config, so on..
         pass
-        # graph_db =
-        # vector_db =
+
+        bge_m3_embeddings = HuggingFaceEmbeddings(
+            model_name="BAAI/bge-m3"
+        )
+
+        index = faiss.IndexFlatL2(1024)
+
+        self.vector_store = FAISS(
+            embedding_function=bge_m3_embeddings,
+            index=index,
+            docstore=InMemoryDocstore(),
+            index_to_docstore_id={}
+        )
 
     def index(self, knowledge_graph: KnowledgeGraph):
-        # TODO: it should upload the graph to the graph database, then encode the relation descriptions and upload their vectors to the vector database
-        pass
+        documents = []
+        for edge in knowledge_graph.edges:
+            description = edge.description
+            documents.append(Document(page_content=description, metadata={"id": edge.id}))
+
+        self.vector_store.add_documents(documents=documents)
+
+        # Print information about the index
+        print(f"Index size: {self.vector_store.index.ntotal}")
+        print(f"Dimension: {self.vector_store.index.d}")
+        print(f"Number of documents: {len(self.vector_store.docstore._dict)}")
+
+        # You can also print the first few document IDs
+        print(f"Document IDs: {list(self.vector_store.index_to_docstore_id.values())[:5]}")
 
     def retrieve(self, query: str) -> list[Document]:
         # TODO this should be better documented, if we want to leave it as a docstring!

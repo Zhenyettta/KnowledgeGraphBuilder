@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Optional, Any, Set, Tuple
-from warnings import deprecated
+
 
 import spacy
 from glirel import GLiREL
@@ -9,7 +9,7 @@ from langchain_core.runnables import Runnable, RunnableConfig
 from build.lib.kgg.models import Relation
 from kgg.models import Document, Schema
 
-@deprecated
+
 class BaseRelationsGenerator(Runnable[dict[str, Document | Schema], Document]):
     @abstractmethod
     def invoke(self, input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Document:

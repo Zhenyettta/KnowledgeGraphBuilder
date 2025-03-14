@@ -1,11 +1,13 @@
 from typing import Optional, Any, Dict, Tuple, Set
-from warnings import deprecated
+
 
 from neo4j import GraphDatabase, Query
 from langchain_core.runnables import Runnable, RunnableConfig
+
+
 from kgg.models import Document
 
-@deprecated
+
 class BaseNeo4jLoader(Runnable[Document, Dict[str, Any]]):
     def __init__(
         self,

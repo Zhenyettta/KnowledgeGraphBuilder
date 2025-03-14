@@ -15,3 +15,8 @@ docker run -it -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/newPassword --name 
 
 
 streamlit run app.py (треба бути в папці фронт)
+
+
+docker run --detach --name vespa --hostname vespa-container \
+  --publish 8080:8080 --publish 19071:19071 \
+  vespaengine/vespa

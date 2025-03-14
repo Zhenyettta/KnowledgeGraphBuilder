@@ -10,7 +10,7 @@ from kgg.models import Document, KnowledgeGraph, Node, Edge, Relation, Entity
 from kgg.nodes.entity_extraction import GLiNEREntitiesGenerator
 from kgg.nodes.ner_labels_generator import NERLabelsGenerator
 from kgg.nodes.relation_extraction import RelationsGenerator
-
+from kgg.retriever import KnowledgeGraphRetriever
 
 
 class KnowledgeGraphGenerator:
@@ -19,6 +19,7 @@ class KnowledgeGraphGenerator:
         self.ner_labels_generator = NERLabelsGenerator(config)
         self.ner_generator = GLiNEREntitiesGenerator(config)
         self.relation_generator = RelationsGenerator(config)
+        self.retriever = KnowledgeGraphRetriever()
 
     def generate(self, documents: list[Document]) -> KnowledgeGraph:
         if not self.config.ner_labels:
@@ -26,7 +27,7 @@ class KnowledgeGraphGenerator:
 
         documents = self.generate_entities(documents)
         from pprint import pprint
-        pprint(self.cluster(self.generate_relations(documents)))
+        pprint(self.retriever.index(self.cluster(self.generate_relations(documents))))
 
     def generate_labels(self, documents: list[Document]) -> list[str]:
         # TODO: log warning if sample size is bigger than the number of documents
@@ -66,7 +67,7 @@ class KnowledgeGraphGenerator:
                     relation.head.text]  # Node(entities=[Entity(text=Зелебоба), Entity(text=Зелебоба), Entity(text=Зелебоба)], text=Зелебоба)
                 tail_node = text2node[
                     relation.tail.text]  # Node(entities=[Entity(text=України), Entity(text=України), Entity(text=України)], text=України)
-                edge = Edge(id=str(uuid.uuid4()), head=head_node, tail=tail_node,
+                edge = Edge(id=relation.id, head=head_node, tail=tail_node,
                             relation=relation)  # Edge(head=Node(entities=[Entity(text=Зелебоба), Entity(text=Зелебоба), Entity(text=Зелебоба)], text=Зелебоба), tail=Node(entities=[Entity(text=України), Entity(text=України), Entity(text=України)], text=України), relation=Relation(id='b1b3b1b1-1b1b-1b1b-1b1b-1b1b1b1b1b1b1', document_id='doc_0', head=Entity(id='b1b3b1b1-1b1b-1b1b-1b1b-1b1b1b1b1b1b1', document_id='doc_0', start_idx=0, end_idx=8, label='LOC', text='Зелебоба'), tail=Entity(id='b1b3b1b1-1b1b-1b1b-1b1b-1b1b1b1b1b1b1', document_id='doc_0', start_idx=9, end_idx=16, label='LOC', text='України'), relation='located_in', description='')]
                 edges.append(edge)
         return KnowledgeGraph(nodes=nodes, edges=edges, documents=documents)
