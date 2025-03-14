@@ -1,17 +1,17 @@
+cd ./back
+pip install -e .
+cd ../front
+pip install -r requirements.txt
 
- ./llama-server --model /Users/evgenijanisimov/infa/Python/models/Hermes-3-Llama-3.1-8B.Q8_0.gguf --host 0.0.0.0 --port 8080
+python -m spacy download en_core_web_lg (якщо видає помилку)
 
+деякі штуки ще не додані в requirements, якщо не буде то встановити з IDE правою кнопкою.
+
+запущена ollama
 
 docker build -t my-neo4j .
 
 docker run -it -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/newPassword --name my-neo4j-container my-neo4j
 
 
-
-llama-server.exe --model "C:\infa\Python\Dyplom\models\Hermes-3-Llama-3.1-8B.Q8_0.gguf" --port 8080 --n-gpu-layers 1000
-
-
-vllm serve NousResearch/Meta-Llama-3-8B-Instruct --dtype auto --api-key token-abc123
-
-
-docker run -p 8000:8000 ghcr.io/ggml-org/llama.cpp:server -~/dyploma/models/Llama-3.1-Storm-8B.Q8_0.gguf --port 8000 --host 0.0.0.0
+streamlit run app.py (треба бути в папці фронт)

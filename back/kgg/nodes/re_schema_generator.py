@@ -2,6 +2,7 @@ import json
 import re
 from abc import abstractmethod
 from typing import Optional, Any
+from warnings import deprecated
 
 from kg_gen import KGGen
 from langchain_core.messages import BaseMessage
@@ -13,7 +14,7 @@ from pydantic import SecretStr
 from kgg.models import Document, Entity, KnowledgeGraph
 from kgg.prompts import ER_PROMPT, GLINER_LLM_PROMPT
 
-
+@deprecated
 class BaseRelationsSchemaGenerator(Runnable[Document, Schema]):
     @abstractmethod
     def invoke(self, input: Document, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Schema:
