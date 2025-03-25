@@ -11,7 +11,8 @@ python -m spacy download en_core_web_lg (якщо видає помилку)
 
 docker build -t my-neo4j .
 
-docker run -it -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/newPassword --name my-neo4j-container my-neo4j
+docker run -it -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/newPassword -e NEO4J_PLUGINS=["graph-data-science"] --name my-neo4j-container neo4j:latest
+
 
 
 streamlit run app.py (треба бути в папці фронт)
@@ -20,3 +21,11 @@ streamlit run app.py (треба бути в папці фронт)
 docker run --detach --name vespa --hostname vespa-container \
   --publish 8080:8080 --publish 19071:19071 \
   vespaengine/vespa
+
+
+docker run -d ^
+  --name my-neo4j ^
+  -p 7474:7474 -p 7687:7687 ^
+  -v %cd%\data:/data ^
+  -v %cd%\plugins:/plugins ^
+  my-neo4j

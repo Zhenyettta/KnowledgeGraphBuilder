@@ -50,6 +50,7 @@ class Edge:
 
     @property
     def description(self):
+        # Assumes all relation have the same description
         return self.relation.description
 
 

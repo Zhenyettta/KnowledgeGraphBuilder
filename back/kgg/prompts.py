@@ -218,3 +218,116 @@ GLINER_LLM_PROMPT = ChatPromptTemplate.from_messages([
         "Text: {text}\n\nDetected entities:\n{entities}"
     )
 ])
+
+
+
+# --------------------- Prompt Templates ---------------------
+GRAPH_ANSWERING_INSTRUCTION = """Answer questions based ONLY on the provided texts.
+
+1. Read the question and texts
+2. Search for relevant information in the texts
+3. If information is found, provide answer based ONLY on the texts
+4. If information is NOT found, respond with "I cannot answer this question based on the provided information"
+5. Do not make assumptions or provide external knowledge
+6. Reference relevant parts of the texts
+
+ONLY use information explicitly stated in the texts."""
+
+
+# Example 1: Answer can be found directly in texts
+EXAMPLE_GRAPH_INPUT1 = """
+Question: What was the GDP growth rate of China in 2022?
+
+Texts:
+[Text 1] According to economic reports, China's GDP growth rate in 2022 was 3.0%, which was lower than expected due to COVID-19 restrictions affecting manufacturing and consumer spending.
+
+[Text 2] The European Union experienced a GDP growth of 3.4% in 2022, while the United States recorded a growth of 2.1% during the same period.
+
+[Text 3] China's population reached 1.4 billion in 2022, making it the most populous country until India surpassed it in 2023.
+"""
+
+EXAMPLE_GRAPH_OUTPUT1 = """
+Based on the provided texts, China's GDP growth rate in 2022 was 3.0%.
+
+This information is directly stated in Text 1: "China's GDP growth rate in 2022 was 3.0%, which was lower than expected due to COVID-19 restrictions affecting manufacturing and consumer spending."
+"""
+
+# Example 2: Answer requires combining information from multiple texts
+EXAMPLE_GRAPH_INPUT2 = """
+Question: Which countries had higher GDP growth than the United States in 2022?
+
+Texts:
+[Text 1] According to economic reports, China's GDP growth rate in 2022 was 3.0%, which was lower than expected due to COVID-19 restrictions affecting manufacturing and consumer spending.
+
+[Text 2] The European Union experienced a GDP growth of 3.4% in 2022, while the United States recorded a growth of 2.1% during the same period.
+
+[Text 3] India's economy expanded by 7.2% in 2022, showing strong post-pandemic recovery in manufacturing and services sectors.
+"""
+
+EXAMPLE_GRAPH_OUTPUT2 = """
+Based on the provided texts, the countries/regions that had higher GDP growth than the United States in 2022 were:
+
+1. China (3.0%) - from Text 1
+2. European Union (3.4%) - from Text 2
+3. India (7.2%) - from Text 3
+
+The United States had a GDP growth of 2.1% in 2022 as mentioned in Text 2, which is lower than the growth rates of these three countries/regions.
+"""
+
+# Example 3: No answer available in texts
+EXAMPLE_GRAPH_INPUT3 = """
+Question: What was Japan's inflation rate in 2022?
+
+Texts:
+[Text 1] According to economic reports, China's GDP growth rate in 2022 was 3.0%, which was lower than expected due to COVID-19 restrictions affecting manufacturing and consumer spending.
+
+[Text 2] The European Union experienced a GDP growth of 3.4% in 2022, while the United States recorded a growth of 2.1% during the same period.
+
+[Text 3] Japan's central bank maintained its negative interest rate policy throughout 2022, despite global trends toward monetary tightening.
+"""
+
+EXAMPLE_GRAPH_OUTPUT3 = """
+I cannot answer this question based on the provided information.
+
+None of the texts contain specific information about Japan's inflation rate in 2022. Text 3 mentions Japan's central bank policy but does not provide any data about inflation rates.
+"""
+
+# Example 4: Partial information but not complete answer
+EXAMPLE_GRAPH_INPUT4 = """
+Question: What factors contributed to global economic growth in 2022?
+
+Texts:
+[Text 1] The post-pandemic recovery continued to drive economic activity in many regions during 2022, though at an uneven pace.
+
+[Text 2] Supply chain disruptions that began in 2021 gradually eased throughout 2022, helping manufacturers increase production.
+
+[Text 3] Rising energy prices due to the conflict in Ukraine created significant headwinds for economic growth in Europe during 2022.
+"""
+
+EXAMPLE_GRAPH_OUTPUT4 = """
+Based on the provided texts, the following factors influenced global economic growth in 2022:
+
+1. Post-pandemic recovery continued to drive economic activity, though unevenly across regions (Text 1)
+2. Easing of supply chain disruptions helped increase manufacturing production (Text 2)
+3. Rising energy prices due to the Ukraine conflict created economic headwinds, particularly in Europe (Text 3)
+
+These factors both supported and hindered growth in different ways, but the texts don't provide a comprehensive analysis of all factors affecting global economic growth or specify which factors had the greatest impact overall.
+"""
+
+GRAPH_ANSWERING_PROMPT = ChatPromptTemplate.from_messages([
+    SystemMessage(GRAPH_ANSWERING_INSTRUCTION),
+    HumanMessage(EXAMPLE_GRAPH_INPUT1),
+    AIMessage(EXAMPLE_GRAPH_OUTPUT1),
+    HumanMessage(EXAMPLE_GRAPH_INPUT2),
+    AIMessage(EXAMPLE_GRAPH_OUTPUT2),
+    HumanMessage(EXAMPLE_GRAPH_INPUT3),
+    AIMessage(EXAMPLE_GRAPH_OUTPUT3),
+    HumanMessage(EXAMPLE_GRAPH_INPUT4),
+    AIMessage(EXAMPLE_GRAPH_OUTPUT4),
+    HumanMessagePromptTemplate.from_template(
+        "Question: {question}\n\nTexts:\n{texts}"
+    )
+])
+
+
+

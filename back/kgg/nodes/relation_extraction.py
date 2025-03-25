@@ -1,7 +1,9 @@
+import gc
 import json
 import re
 import uuid
 
+import torch
 from langchain_core.messages import BaseMessage
 
 from kgg.config import KGGConfig
@@ -17,6 +19,8 @@ class RelationsGenerator:
         self.prompt = GLINER_LLM_PROMPT
 
     def generate_relations(self, documents: list[Document]) -> list[Document]:
+        gc.collect()
+        torch.cuda.empty_cache()
         for document in documents:
             relations = self._extract_relations(document)
             document.relations.update(relations)
@@ -30,6 +34,7 @@ class RelationsGenerator:
                 text=document.text,
                 entities=formatted_entities
             ))
+            print(response)
             unique_relations.update(self._parse_response(response, document=document))
             return unique_relations
         except Exception as e:

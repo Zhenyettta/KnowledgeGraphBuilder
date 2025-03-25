@@ -4,7 +4,7 @@ import re
 from langchain_core.messages import BaseMessage
 
 from kgg.config import KGGConfig
-from kgg.models import Document, Entity, Relation
+from kgg.models import Document
 from kgg.prompts import NER_PROMPT
 from kgg.utils import initialize_llm
 

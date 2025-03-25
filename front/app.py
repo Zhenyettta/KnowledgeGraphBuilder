@@ -13,7 +13,6 @@ from kgg.prompts import NER_PROMPT
 from kgg.config import KGGConfig
 
 
-
 def setup_environment() -> str:
     if os.getenv('KGG_UPLOADS_CACHE_DIR'):
         uploads_dir = Path(os.getenv('KGG_UPLOADS_CACHE_DIR'))
@@ -22,6 +21,7 @@ def setup_environment() -> str:
     uploads_dir.mkdir(parents=True, exist_ok=True)
 
     return str(uploads_dir)
+
 
 def initialize_session_state():
     if "file_uploaded" not in st.session_state:
@@ -32,6 +32,8 @@ def initialize_session_state():
         st.session_state.relation_document = None
     if "config" not in st.session_state:
         st.session_state.config = KGGConfig()
+    if "knowledge_graph" not in st.session_state:
+        st.session_state.knowledge_graph = None
 
 
 def initialize_sidebar_config():
@@ -78,36 +80,6 @@ def initialize_sidebar_config():
             "Use Old Approach",
             value=st.session_state.config.use_old_approach
         )
-
-
-
-# def process_file_with_gliner_glirel(raw_doc):
-#     ner_schema_generator = HTTPServerRelationSchemaGenerator(prompt=NER_PROMPT)
-#     ner_schema = ner_schema_generator.invoke(raw_doc)
-#
-#     entities_generator = GLiNEREntitiesGenerator()
-#     doc_with_entities = entities_generator.invoke({"document": raw_doc, "schema": ner_schema})
-#
-#     relation_schema_generator = HTTPServerRelationSchemaGenerator()
-#     relation_schema = relation_schema_generator.invoke(doc_with_entities)
-#
-#     relations_generator = GLiRELRelationsGenerator()
-#     processed_doc = relations_generator.invoke({"document": doc_with_entities, "schema": relation_schema})
-#
-#     return processed_doc
-#
-#
-# def process_file_with_gliner_llm(raw_doc):
-#     ner_schema_generator = HTTPServerRelationSchemaGenerator(prompt=NER_PROMPT)
-#     ner_schema = ner_schema_generator.invoke(raw_doc)
-#
-#     entities_generator = GLiNEREntitiesGenerator()
-#     doc_with_entities = entities_generator.invoke({"document": raw_doc, "schema": ner_schema})
-#
-#     relation_extractor = GLiNERRelationExtractor()
-#     processed_doc = relation_extractor.invoke(doc_with_entities)
-#
-#     return processed_doc
 
 
 def parse_jsonl_file(filepath: str) -> list[Document]:
@@ -160,56 +132,79 @@ def handle_neo4j_operations(document):
             st.success(f"Результати вставлення: {insert_result}")
 
 
-def main():
-    st.title("Автоматизація наповнення баз знань")
-    st.write("Завантажте файл, щоб розпочати обробку.")
+def qa_tab():
+    st.header("Question Answering")
+    user_question = st.text_input("Enter your question:", key="qa_question")
 
-    uploads_dir = setup_environment()
-    initialize_session_state()
+    if st.button("Get Answer") and user_question:
+        try:
+            with st.spinner("Generating answer..."):
+                generator = KnowledgeGraphGenerator(st.session_state.config)
+                answer = generator.generate(query=user_question, use_cache=True)
 
-    if not st.session_state.file_uploaded:
-        initialize_sidebar_config()
+            st.markdown("### Answer")
+            st.write(answer)
+        except Exception as e:
+            st.error(f"Error generating answer: {str(e)}")
 
 
-    uploaded_file = st.file_uploader("Завантажте текстовий файл",
-                                     type=["txt", "jsonl"])
+def data_processing_tab():
+    st.header("Document Processing")
+    st.write("Upload a file to begin processing.")
 
-    processing_option = st.radio(
-        "Оберіть метод обробки:",
-        ("KGGenGenerator", "GLiNER + GLiREL", "GLiNER + LLM")
-    )
+    uploaded_file = st.file_uploader("Upload a text file", type=["txt", "jsonl"])
 
     if uploaded_file and not st.session_state.file_uploaded:
+        uploads_dir = setup_environment()
         save_uploaded_file(uploaded_file, uploads_dir)
         st.session_state.file_uploaded = True
-        st.success(f"Файл '{uploaded_file.name}' успішно завантажено.")
-
+        st.success(f"File '{uploaded_file.name}' successfully uploaded.")
 
         processed_doc = parse_uploaded_file(os.path.join(uploads_dir, uploaded_file.name))
-        generator = KnowledgeGraphGenerator(st.session_state.config)
-        generator.generate(documents=processed_doc)
-
-        # TODO
-
-        # TODO 1: Get configuration from streamlit sidebar (optional)
-        # TODO 2: Create KnowledgeGraphGenerator using the configuration
-        # TODO 3: Generate knowledge graph
-        # TODO 4: Cache knowledge graph on the disk (optional)
-        # TODO 5: fix app py
-        # TODO 5: Change the state of the application to retrieval mode
-        # TODO 6: Create KnowledgeGraphRetriever using the configuration (it should have connections to DBs)
-        # TODO 7: Index the knowledge graph using KnowledgeGraphRetriever
-        # TODO 8: Get question from the user and retrieve the relevant documents
-        # TODO 9: Generate an answer based on the retrieved documents (optinal, but recommended)
-
         st.session_state.raw_doc = processed_doc
         st.session_state.relation_document = processed_doc
+        st.session_state.knowledge_graph = None
+
+    st.divider()
 
     if st.session_state.raw_doc:
-        st.write("Результати обробки:")
-        st.json(asdict(st.session_state.raw_doc))
+        process_query = st.text_input("Enter an optional query for processing:", key="process_query",
+                                      placeholder="Leave empty to just process the document")
+
+        if st.button("Process Document"):
+            with st.spinner("Processing document..."):
+                try:
+                    generator = KnowledgeGraphGenerator(st.session_state.config)
+                    answer = generator.generate(
+                        documents=st.session_state.raw_doc,
+                        query=process_query,
+                        use_cache=False
+                    )
+
+                    if process_query:
+                        st.markdown("### Result")
+                        st.write(answer)
+
+                    st.success("Document processed successfully!")
+                except Exception as e:
+                    st.error(f"Error processing document: {str(e)}")
 
         handle_neo4j_operations(st.session_state.relation_document)
+
+
+def main():
+    st.title("Knowledge Graph Generation and Question Answering")
+
+    initialize_session_state()
+    initialize_sidebar_config()
+
+    tab1, tab2 = st.tabs(["Document Processing", "Question Answering"])
+
+    with tab1:
+        data_processing_tab()
+
+    with tab2:
+        qa_tab()
 
 
 if __name__ == "__main__":

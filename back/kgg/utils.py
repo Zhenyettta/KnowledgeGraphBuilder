@@ -1,15 +1,14 @@
-from langchain_openai import ChatOpenAI
+
 
 from kgg.config import KGGConfig
 
 
-def initialize_llm(config: KGGConfig) -> ChatOpenAI:
-    return ChatOpenAI(
-        base_url=config.server_url,
-        temperature=0.0,
-        max_tokens=config.max_tokens,
-        timeout=300,
-        max_retries=1,
-        api_key=config.api_key,
+def initialize_llm(config: KGGConfig):
+    from langchain_ollama import ChatOllama
+
+    return ChatOllama(
         model=config.llm_model,
+        temperature=0.0,
+        num_ctx=10000,  # Set context window size
     )
+
