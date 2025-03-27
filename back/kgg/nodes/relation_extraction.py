@@ -28,8 +28,7 @@ class RelationsGenerator:
         self._load_model()
         for document in documents:
             relations = self._extract_relations(document)
-            document.relations.update(relations)
-            document.relations = self.deduplicate_relations(document.relations)
+            document.relations.update(self.deduplicate_relations(relations))
         self.unload_model()
         return documents
 
@@ -53,7 +52,6 @@ class RelationsGenerator:
                         chunk_entities.append(entity)
                 if len(chunk_entities) < 2:
                     continue
-
                 formatted_entities = self._format_entities(set(chunk_entities))
                 response = self.llm.invoke(self.prompt.format_prompt(
                     text=chunk_text,

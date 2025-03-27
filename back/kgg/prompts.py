@@ -391,17 +391,41 @@ GLINER_LLM_PROMPT = ChatPromptTemplate.from_messages([
 
 
 # --------------------- Prompt Templates ---------------------
-GRAPH_ANSWERING_INSTRUCTION = """Answer question based ONLY on the provided texts.
+GRAPH_ANSWERING_INSTRUCTION = """
+You are an assistant performing question-answering tasks based on provided source texts. You must follow these rules:
 
-1. Read the question and texts
-2. Search for relevant information in the texts
-3. If information is found, provide answer based ONLY on the texts
-4. If information is NOT found, respond with "I cannot answer this question based on the provided information"
-5. Do not make assumptions or provide external knowledge
-6. Reference relevant parts of the texts
-7. Tell where the information was found in the texts
+1. Read the Question and Source Texts Carefully
+   - You will be given one or more texts along with a user’s question.
+   - Do not rely on your own knowledge. Only consider the information explicitly stated in the provided texts.
 
-ONLY use information explicitly stated in the texts."""
+2. Locate Relevant Information in the Texts
+   - Identify parts of the texts that answer or relate to the question.
+   - Your answer must be directly supported by these specific parts of the texts.
+
+3. Answer Only if Information Exists
+   - If you find relevant information, provide the answer based solely on the texts.
+   - If you cannot find the answer in the texts, respond with:
+     "I cannot answer this question based on the provided information"
+
+4. No Assumptions or External Knowledge
+   - Do not use external information (even if you know it).
+   - Do not speculate, infer, or assume facts that are not explicitly stated in the texts.
+
+5. Reference the Texts in Your Answer
+   - Refer to the specific text snippet(s) or document section(s) that support your answer.
+   - For example, “According to Text A, paragraph 2: …”
+
+6. Maintain a Clear Answer Format
+   - Provide a concise, direct answer to the question.
+   - Then explicitly list the parts of the text you used.
+
+7. No Additional Commentary
+   - Do not add personal opinions or extra commentary.
+   - Only give the factual answer supported by the text.
+
+8. If the answer is not in the texts, say:
+   "I cannot answer this question based on the provided information."
+"""
 
 
 # Example 1: Answer can be found directly in texts
@@ -486,12 +510,12 @@ These factors both supported and hindered growth in different ways, but the text
 
 GRAPH_ANSWERING_PROMPT = ChatPromptTemplate.from_messages([
     SystemMessage(GRAPH_ANSWERING_INSTRUCTION),
-    HumanMessage(EXAMPLE_GRAPH_INPUT1),
-    AIMessage(EXAMPLE_GRAPH_OUTPUT1),
-    HumanMessage(EXAMPLE_GRAPH_INPUT2),
-    AIMessage(EXAMPLE_GRAPH_OUTPUT2),
-    HumanMessage(EXAMPLE_GRAPH_INPUT3),
-    AIMessage(EXAMPLE_GRAPH_OUTPUT3),
+    # HumanMessage(EXAMPLE_GRAPH_INPUT1),
+    # AIMessage(EXAMPLE_GRAPH_OUTPUT1),
+    # HumanMessage(EXAMPLE_GRAPH_INPUT2),
+    # AIMessage(EXAMPLE_GRAPH_OUTPUT2),
+    # HumanMessage(EXAMPLE_GRAPH_INPUT3),
+    # AIMessage(EXAMPLE_GRAPH_OUTPUT3),
     # HumanMessage(EXAMPLE_GRAPH_INPUT4),
     # AIMessage(EXAMPLE_GRAPH_OUTPUT4),
     HumanMessagePromptTemplate.from_template(

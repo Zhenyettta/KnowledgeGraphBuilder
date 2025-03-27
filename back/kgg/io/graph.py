@@ -152,7 +152,7 @@ class Neo4j(GraphDatabase):
             pagerank_query = cast(LiteralString, """
                 CALL gds.pageRank.stream($name, {
                     sourceNodes: $source_ids,
-                    maxIterations: 20,
+                    maxIterations: 100,
                     dampingFactor: 0.85,
                     relationshipWeightProperty: 'weight'
                 })
