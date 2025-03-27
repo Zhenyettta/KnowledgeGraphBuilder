@@ -55,10 +55,6 @@ class RelationsGenerator:
                     continue
 
                 formatted_entities = self._format_entities(set(chunk_entities))
-                print(self.length_function(self.prompt.format_prompt(
-                    text=chunk_text,
-                    entities=formatted_entities
-                ).to_string()))
                 response = self.llm.invoke(self.prompt.format_prompt(
                     text=chunk_text,
                     entities=formatted_entities

@@ -106,7 +106,7 @@ if __name__ == "__main__":
     input_file = "musique_full_v1.0_test.jsonl"
     questions_output_file = "questions.jsonl"
     texts_output_file = "output.jsonl"
-    limit = 30
+    limit = 100
     # Extract questions from the first 50 samples
     extract_questions_to_file(input_file, questions_output_file, limit)
 

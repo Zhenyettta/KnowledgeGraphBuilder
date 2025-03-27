@@ -163,6 +163,6 @@ class Neo4j(GraphDatabase):
 
             scores = {record["nodeId"]: record["score"] for record in result}
 
-            # drop_query = cast(LiteralString, "CALL gds.graph.drop($name)")
-            # session.run(drop_query, name=graph_name)
+            drop_query = cast(LiteralString, "CALL gds.graph.drop($name)")
+            session.run(drop_query, name=graph_name)
             return scores

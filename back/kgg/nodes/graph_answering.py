@@ -22,8 +22,6 @@ class GraphAnswering:
             texts = []
             for i, document in enumerate(documents, 1):
                 texts.append(f"[Text {i}] {document.text}")
-                print(f"[Text {i}] {document.text[:100]}")
-                print("\n")
 
             context_texts = "\n\n".join(texts)
             response = self.llm.invoke(

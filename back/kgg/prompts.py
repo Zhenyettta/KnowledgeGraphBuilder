@@ -379,8 +379,8 @@ GLINER_LLM_PROMPT = ChatPromptTemplate.from_messages([
     AIMessage(EXAMPLE_GLINER_OUTPUT1),
     HumanMessage(EXAMPLE_GLINER_INPUT2),
     AIMessage(EXAMPLE_GLINER_OUTPUT2),
-    HumanMessage(EXAMPLE_GLINER_INPUT3),
-    AIMessage(EXAMPLE_GLINER_OUTPUT3),
+    # HumanMessage(EXAMPLE_GLINER_INPUT3),
+    # AIMessage(EXAMPLE_GLINER_OUTPUT3),
     HumanMessage(EXAMPLE_GLINER_INPUT4),
     AIMessage(EXAMPLE_GLINER_OUTPUT4),
     HumanMessagePromptTemplate.from_template(
