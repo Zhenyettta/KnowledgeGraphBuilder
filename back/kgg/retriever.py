@@ -59,7 +59,7 @@ class KnowledgeGraphRetriever:
     #     """
     #     pass
 
-    def retrieve(self, knowledge_graph: KnowledgeGraph, query: str, k=3) -> list[Document]:
+    def retrieve(self, knowledge_graph: KnowledgeGraph, query: str, k=5) -> list[Document]:
         """Query the indexed knowledge graph"""
         if self.vector_store.index.ntotal == 0:
             raise ValueError("Knowledge graph not indexed. Call index() first.")

@@ -1,16 +1,13 @@
-import jsonlines
 import os
-from dataclasses import asdict
 from pathlib import Path
 
+import jsonlines
 import streamlit as st
 
-from kgg import config
-from kgg.generator import KnowledgeGraphGenerator
-from kgg.models import Document, KnowledgeGraph
-from kgg.nodes.neo4j_loader import Neo4jRelationsInserter
-from kgg.prompts import NER_PROMPT
 from kgg.config import KGGConfig
+from kgg.generator import KnowledgeGraphGenerator
+from kgg.models import Document
+from kgg.nodes.neo4j_loader import Neo4jRelationsInserter
 
 
 def setup_environment() -> str:

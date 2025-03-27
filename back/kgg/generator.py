@@ -68,6 +68,7 @@ class KnowledgeGraphGenerator:
             self.config.ner_labels = self.generate_labels(documents)
 
         documents_with_entities = self.generate_entities(documents)
+        print("boba")
         documents_with_relations = self.generate_relations(documents_with_entities)
         graph = self.cluster(documents_with_relations)
 
@@ -228,6 +229,7 @@ class KnowledgeGraphGenerator:
         """
         Query the knowledge graph to get an answer.
         """
+        print("boba2")
         retrieved_data = self.retriever.retrieve(query=query, knowledge_graph=graph)
         return self.graph_answering.generate_answer(query, retrieved_data)
 
@@ -255,6 +257,7 @@ class KnowledgeGraphGenerator:
         """
         Generate relations between entities in documents.
         """
+        print("boba1")
         return self.relation_generator.generate_relations(documents)
 
     def cluster(self, documents: list[Document]) -> KnowledgeGraph:

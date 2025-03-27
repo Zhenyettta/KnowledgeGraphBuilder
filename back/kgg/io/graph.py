@@ -1,9 +1,9 @@
 from typing import Optional, Dict, List, Any, cast
-from typing_extensions import LiteralString
 
 from neo4j import GraphDatabase as Neo4jDriver
 from neo4j.exceptions import ServiceUnavailable
 from neo4j.graph import Node as Neo4jNode
+from typing_extensions import LiteralString
 
 from kgg.models import KnowledgeGraph, Edge, Node
 
@@ -112,7 +112,8 @@ class Neo4j(GraphDatabase):
             count = result.single()["count"]
             return count > 0
 
-    def personalized_pagerank(self, node_ids: list[str], edge_ids2weights: dict[str, float]) -> Dict[str, Dict[str, Any]]:
+    def personalized_pagerank(self, node_ids: list[str], edge_ids2weights: dict[str, float]) -> Dict[
+        str, Dict[str, Any]]:
         print(node_ids, edge_ids2weights)
         for id, weight in edge_ids2weights.items():
             self.update_edge_weights_by_id([id], weight)
@@ -126,7 +127,6 @@ class Neo4j(GraphDatabase):
 
         internal_ids = [info['internal_id'] for info in user_info.values()]
         internal_scores = self.run_pagerank(internal_ids)
-
 
         return {
             uid: {
@@ -144,7 +144,8 @@ class Neo4j(GraphDatabase):
                 'myGraph',
                 source,
                 target,
-                 { relationshipProperties: r { .weight } })
+                { relationshipProperties: r { .weight }},
+                { undirectedRelationshipTypes: ['*']})
             """)
             session.run(create_graph_query)
 
@@ -153,7 +154,7 @@ class Neo4j(GraphDatabase):
                     sourceNodes: $source_ids,
                     maxIterations: 20,
                     dampingFactor: 0.85,
-                     relationshipWeightProperty: 'weight'
+                    relationshipWeightProperty: 'weight'
                 })
                 YIELD nodeId, score
                 RETURN nodeId, score
@@ -162,6 +163,6 @@ class Neo4j(GraphDatabase):
 
             scores = {record["nodeId"]: record["score"] for record in result}
 
-            drop_query = cast(LiteralString, "CALL gds.graph.drop($name)")
-            session.run(drop_query, name=graph_name)
+            # drop_query = cast(LiteralString, "CALL gds.graph.drop($name)")
+            # session.run(drop_query, name=graph_name)
             return scores

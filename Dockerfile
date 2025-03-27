@@ -1,5 +1,4 @@
-# Use the official Neo4j image
-FROM neo4j
+FROM neo4j:5.12.0
 
 # Expose Neo4j ports
 EXPOSE 7474 7687
@@ -11,7 +10,7 @@ ENV NEO4J_AUTH=neo4j/newPassword
 ENV NEO4J_PLUGINS=["graph-data-science"]
 
 # Create a volume to persist data
-VOLUME /data /plugins
+VOLUME ["/data", "/plugins"]
 
 # Default command to run Neo4j
 CMD ["neo4j"]

@@ -1,6 +1,8 @@
+import gc
 import json
 import re
 
+import torch
 from langchain_core.messages import BaseMessage
 
 from kgg.config import KGGConfig
@@ -13,20 +15,24 @@ from kgg.utils import initialize_llm
 class NERLabelsGenerator:
     def __init__(self, config: KGGConfig):
         self.config = config
-        self.llm = initialize_llm(config)
+        self.llm = None
         self.prompt = NER_PROMPT
 
 
     def generate_labels(self, documents: list[Document]) -> list[str]:
         try:
+            self._load_model()
             unique_labels = set()
             for document in documents:
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                gc.collect()
                 response = self.llm.invoke(self.prompt.format_prompt(
                     user_input=document.text,
-
                 ))
                 unique_labels.update(self._parse_response(response))
-
+            print(f"Unique labels: {len(unique_labels)}")
+            self.unload_model()
             return sorted(unique_labels)
 
         except Exception as e:
@@ -55,4 +61,19 @@ class NERLabelsGenerator:
         except (json.JSONDecodeError, KeyError) as e:
             print(f"JSON Parsing Error: {e}, Response: {generated_text}")
             return []
+
+
+    def _load_model(self):
+        if self.llm is None:
+            print("Loading llm model to GPU...")
+            self.llm = initialize_llm(self.config, num_ctx=9000)
+
+    def unload_model(self):
+        if hasattr(self, 'llm') and self.llm is not None:
+            del self.llm
+            self.llm = None
+            torch.cuda.empty_cache()
+            gc.collect()
+            print("Model unloaded from GPU")
+
 

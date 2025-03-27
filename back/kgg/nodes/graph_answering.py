@@ -1,4 +1,8 @@
+from copy import deepcopy
+
 from langchain_core.messages import BaseMessage
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from transformers import AutoTokenizer
 
 from kgg.config import KGGConfig
 from kgg.models import Document
@@ -9,8 +13,8 @@ from kgg.utils import initialize_llm
 class GraphAnswering:
     def __init__(self, config: KGGConfig):
         self.config = config
-        config.llm_model = "deepseek-r1:14b"
-        self.llm = initialize_llm(config)
+        llm_config = deepcopy(config)
+        self.llm = initialize_llm(llm_config, num_ctx=16000)
         self.prompt = GRAPH_ANSWERING_PROMPT
 
     def generate_answer(self, question: str, documents: list[Document]) -> str:
@@ -18,6 +22,8 @@ class GraphAnswering:
             texts = []
             for i, document in enumerate(documents, 1):
                 texts.append(f"[Text {i}] {document.text}")
+                print(f"[Text {i}] {document.text[:100]}")
+                print("\n")
 
             context_texts = "\n\n".join(texts)
             response = self.llm.invoke(
@@ -27,6 +33,7 @@ class GraphAnswering:
                 )
             )
             print(response.content)
+            print(question)
 
             return self._process_response(response)
 
@@ -40,7 +47,6 @@ class GraphAnswering:
 
         content = response.content.strip()
 
-        # Remove any <think> blocks from the response
         think_start = content.find("<think>")
         if think_start != -1:
             think_end = content.find("</think>", think_start)
@@ -48,4 +54,5 @@ class GraphAnswering:
                 content = content[:think_start] + content[think_end + 8:]
 
         return content
+
 

@@ -12,32 +12,19 @@ You are an expert annotator. Your task is to extract **entity labels** from unst
 """
 
 ER_instruction = """
-You are an expert annotator. Your task is to extract **relation labels** between entities in the text.
-- Use the provided entities and context to infer meaningful relationships.
-- Return the labels as a **Python list** with single quotes around each label, enclosed in square brackets, and separated by commas.
-- Example output: `['founded_by', 'located_in', 'acquired']`.
-- Ensure no duplicates and no additional text outside the list.
-"""
+You are an expert in relationship extraction. Your task is to identify and extract relation labels between entities in text.
 
-NEW_ER_instruction = """
-You are an expert annotator. Your task is to extract **relation labels** between entities in the text.
-- Use the provided entities and context to infer meaningful relationships.
-- Example output: `labels = {"glirel_labels": {
-    "co-founder": {"allowed_head": ["person"], "allowed_tail": ["ORG"]},
-    "no relation": {},  # head and tail can be any entity type
-    "country of origin": {"allowed_head": ["person", "ORG"], "allowed_tail": ["LOC", "GPE"]},
-    "parent": {"allowed_head": ["person"], "allowed_tail": ["person"]},
-    "located in or next to body of water": {"allowed_head": ["LOC", "GPE", "FAC"], "allowed_tail": ["LOC", "GPE"]},
-    "spouse": {"allowed_head": ["person"], "allowed_tail": ["person"]},
-    "child": {"allowed_head": ["person"], "allowed_tail": ["person"]},
-    "founder": {"allowed_head": ["person"], "allowed_tail": ["ORG"]},
-    "founded on date": {"allowed_head": ["ORG"], "allowed_tail": ["DATE"]},
-    "headquartered in": {"allowed_head": ["ORG"], "allowed_tail": ["LOC", "GPE", "FAC"]},
-    "acquired by": {"allowed_head": ["ORG"], "allowed_tail": ["ORG", "person"]},
-    "subsidiary of": {"allowed_head": ["ORG"], "allowed_tail": ["ORG", "person"]}
-    }
-}`.
-- Ensure no duplicates and no additional text outside the list.
+Instructions:
+- Given a text and extracted entities, identify meaningful relationship types that connect these entities
+- Focus on relationship LABELS only (e.g., 'employs', 'located_in', 'part_of'), not the entities themselves
+- Consider relationships that are explicitly stated or strongly implied in the text
+- Include functional relationships (e.g., 'CEO_of'), spatial relationships (e.g., 'based_in'), temporal relationships (e.g., 'founded_on'), and other semantic connections
+- Use verb-based labels or compound terms with underscores (e.g., 'acquired_by', 'subsidiary_of')
+- Return a list with single quotes around each unique relation label
+- Do not include duplicate relations or any text outside the formatted list
+
+
+Example output: `['founded_by', 'located_in', 'acquired', 'employed_by', 'developed_by']`
 """
 
 # --------------------- NER Examples ---------------------
@@ -120,7 +107,6 @@ Detected entities:
 - 3 July 2001 (date)
 """
 
-
 EXAMPLE_GLINER_OUTPUT1 = """
  [
         {
@@ -184,6 +170,185 @@ EXAMPLE_GLINER_OUTPUT2 = """
 ]
 """
 
+EXAMPLE_GLINER_INPUT3 = """
+Text: The FDA approved Keytruda (pembrolizumab), developed by Merck & Co., for treating advanced melanoma in 2014, after clinical trials showed a 34% response rate with manageable side effects including fatigue and rash in about 20% of patients at Memorial Sloan Kettering Cancer Center.
+
+Detected entities:
+- FDA (organization)
+- Keytruda (medication)
+- pembrolizumab (chemical compound)
+- Merck & Co. (company)
+- melanoma (disease)
+- 2014 (date)
+- 34% (percentage)
+- fatigue (symptom)
+- rash (symptom)
+- 20% (percentage)
+- Memorial Sloan Kettering Cancer Center (medical facility)
+"""
+
+EXAMPLE_GLINER_OUTPUT3 = """
+[
+        {
+            "head": {"text": "FDA", "label": "organization"},
+            "tail": {"text": "Keytruda", "label": "medication"},
+            "relation": "approved",
+            "description": "The FDA approved Keytruda for treating advanced melanoma after clinical trials"
+        },
+        {
+            "head": {"text": "Keytruda", "label": "medication"},
+            "tail": {"text": "pembrolizumab", "label": "chemical compound"},
+            "relation": "contains",
+            "description": "Keytruda contains pembrolizumab as its active pharmaceutical ingredient"
+        },
+        {
+            "head": {"text": "Merck & Co.", "label": "company"},
+            "tail": {"text": "Keytruda", "label": "medication"},
+            "relation": "developed",
+            "description": "Merck & Co. developed Keytruda as a treatment for melanoma"
+        },
+        {
+            "head": {"text": "Keytruda", "label": "medication"},
+            "tail": {"text": "melanoma", "label": "disease"},
+            "relation": "treats",
+            "description": "Keytruda is approved for treating advanced melanoma as its therapeutic use"
+        },
+        {
+            "head": {"text": "FDA", "label": "organization"},
+            "tail": {"text": "2014", "label": "date"},
+            "relation": "approved_in",
+            "description": "The FDA approved Keytruda for melanoma treatment in 2014 following clinical trials"
+        },
+        {
+            "head": {"text": "Keytruda", "label": "medication"},
+            "tail": {"text": "34%", "label": "percentage"},
+            "relation": "has_response_rate",
+            "description": "Keytruda showed a 34% response rate in clinical trials for melanoma treatment"
+        },
+        {
+            "head": {"text": "Keytruda", "label": "medication"},
+            "tail": {"text": "fatigue", "label": "symptom"},
+            "relation": "causes",
+            "description": "Keytruda can cause fatigue as a side effect in treated patients"
+        },
+        {
+            "head": {"text": "Keytruda", "label": "medication"},
+            "tail": {"text": "rash", "label": "symptom"},
+            "relation": "causes",
+            "description": "Keytruda can cause rash as a side effect in treated patients"
+        },
+        {
+            "head": {"text": "fatigue", "label": "symptom"},
+            "tail": {"text": "20%", "label": "percentage"},
+            "relation": "occurs_in",
+            "description": "Fatigue as a side effect occurs in about 20% of patients taking Keytruda"
+        },
+        {
+            "head": {"text": "rash", "label": "symptom"},
+            "tail": {"text": "20%", "label": "percentage"},
+            "relation": "occurs_in",
+            "description": "Rash as a side effect occurs in about 20% of patients taking Keytruda"
+        },
+        {
+            "head": {"text": "Memorial Sloan Kettering Cancer Center", "label": "medical facility"},
+            "tail": {"text": "clinical trials", "label": "research"},
+            "relation": "conducted",
+            "description": "Clinical trials for Keytruda were conducted at Memorial Sloan Kettering Cancer Center"
+        }
+]
+"""
+
+
+EXAMPLE_GLINER_INPUT4 = """
+Text: Bitcoin, created by the pseudonymous Satoshi Nakamoto in 2009, reached an all-time high of $68,789 on November 10, 2021, before experiencing a 72% crash to $17,592 in June 2022 amid rising interest rates by the Federal Reserve and the collapse of Terra Luna ecosystem.
+
+Detected entities:
+- Bitcoin (cryptocurrency)
+- Satoshi Nakamoto (person)
+- 2009 (date)
+- $68,789 (amount)
+- November 10, 2021 (date)
+- 72% (percentage)
+- $17,592 (amount)
+- June 2022 (date)
+- interest rates (economic indicator)
+- Federal Reserve (organization)
+- Terra Luna (cryptocurrency)
+"""
+
+EXAMPLE_GLINER_OUTPUT4 = """
+[
+        {
+            "head": {"text": "Bitcoin", "label": "cryptocurrency"},
+            "tail": {"text": "Satoshi Nakamoto", "label": "person"},
+            "relation": "created_by",
+            "description": "Bitcoin was created by the pseudonymous Satoshi Nakamoto as its founder"
+        },
+        {
+            "head": {"text": "Bitcoin", "label": "cryptocurrency"},
+            "tail": {"text": "2009", "label": "date"},
+            "relation": "created_in",
+            "description": "Bitcoin was created in 2009 when Satoshi Nakamoto launched it"
+        },
+        {
+            "head": {"text": "Bitcoin", "label": "cryptocurrency"},
+            "tail": {"text": "$68,789", "label": "amount"},
+            "relation": "reached_value",
+            "description": "Bitcoin reached an all-time high value of $68,789 before the crash"
+        },
+        {
+            "head": {"text": "$68,789", "label": "amount"},
+            "tail": {"text": "November 10, 2021", "label": "date"},
+            "relation": "recorded_on",
+            "description": "The all-time high of $68,789 for Bitcoin was recorded specifically on November 10, 2021"
+        },
+        {
+            "head": {"text": "Bitcoin", "label": "cryptocurrency"},
+            "tail": {"text": "$17,592", "label": "amount"},
+            "relation": "crashed_to",
+            "description": "Bitcoin crashed to a low of $17,592 after its all-time high, representing a major decline"
+        },
+        {
+            "head": {"text": "$17,592", "label": "amount"},
+            "tail": {"text": "June 2022", "label": "date"},
+            "relation": "recorded_in",
+            "description": "The low price of $17,592 for Bitcoin was recorded in June 2022 during the market crash"
+        },
+        {
+            "head": {"text": "Bitcoin", "label": "cryptocurrency"},
+            "tail": {"text": "72%", "label": "percentage"},
+            "relation": "declined_by",
+            "description": "Bitcoin experienced a significant 72% crash from its all-time high to its June 2022 low"
+        },
+        {
+            "head": {"text": "Federal Reserve", "label": "organization"},
+            "tail": {"text": "interest rates", "label": "economic indicator"},
+            "relation": "increased",
+            "description": "The Federal Reserve raised interest rates which impacted cryptocurrency markets"
+        },
+        {
+            "head": {"text": "Bitcoin", "label": "cryptocurrency"},
+            "tail": {"text": "Federal Reserve", "label": "organization"},
+            "relation": "affected_by",
+            "description": "Bitcoin price was negatively affected by Federal Reserve's interest rate increases"
+        },
+        {
+            "head": {"text": "Bitcoin", "label": "cryptocurrency"},
+            "tail": {"text": "Terra Luna", "label": "cryptocurrency"},
+            "relation": "affected_by",
+            "description": "Bitcoin price was negatively affected by the collapse of Terra Luna ecosystem in the crypto market"
+        },
+        {
+            "head": {"text": "Terra Luna", "label": "cryptocurrency"},
+            "tail": {"text": "June 2022", "label": "date"},
+            "relation": "collapsed_before",
+            "description": "Terra Luna ecosystem collapsed before or during June 2022, contributing to Bitcoin's crash"
+        }
+]
+"""
+
+
+
 
 # --------------------- Prompt Templates ---------------------
 ER_PROMPT = ChatPromptTemplate.from_messages([
@@ -214,6 +379,10 @@ GLINER_LLM_PROMPT = ChatPromptTemplate.from_messages([
     AIMessage(EXAMPLE_GLINER_OUTPUT1),
     HumanMessage(EXAMPLE_GLINER_INPUT2),
     AIMessage(EXAMPLE_GLINER_OUTPUT2),
+    HumanMessage(EXAMPLE_GLINER_INPUT3),
+    AIMessage(EXAMPLE_GLINER_OUTPUT3),
+    HumanMessage(EXAMPLE_GLINER_INPUT4),
+    AIMessage(EXAMPLE_GLINER_OUTPUT4),
     HumanMessagePromptTemplate.from_template(
         "Text: {text}\n\nDetected entities:\n{entities}"
     )
@@ -222,7 +391,7 @@ GLINER_LLM_PROMPT = ChatPromptTemplate.from_messages([
 
 
 # --------------------- Prompt Templates ---------------------
-GRAPH_ANSWERING_INSTRUCTION = """Answer questions based ONLY on the provided texts.
+GRAPH_ANSWERING_INSTRUCTION = """Answer question based ONLY on the provided texts.
 
 1. Read the question and texts
 2. Search for relevant information in the texts
@@ -230,6 +399,7 @@ GRAPH_ANSWERING_INSTRUCTION = """Answer questions based ONLY on the provided tex
 4. If information is NOT found, respond with "I cannot answer this question based on the provided information"
 5. Do not make assumptions or provide external knowledge
 6. Reference relevant parts of the texts
+7. Tell where the information was found in the texts
 
 ONLY use information explicitly stated in the texts."""
 
@@ -322,8 +492,8 @@ GRAPH_ANSWERING_PROMPT = ChatPromptTemplate.from_messages([
     AIMessage(EXAMPLE_GRAPH_OUTPUT2),
     HumanMessage(EXAMPLE_GRAPH_INPUT3),
     AIMessage(EXAMPLE_GRAPH_OUTPUT3),
-    HumanMessage(EXAMPLE_GRAPH_INPUT4),
-    AIMessage(EXAMPLE_GRAPH_OUTPUT4),
+    # HumanMessage(EXAMPLE_GRAPH_INPUT4),
+    # AIMessage(EXAMPLE_GRAPH_OUTPUT4),
     HumanMessagePromptTemplate.from_template(
         "Question: {question}\n\nTexts:\n{texts}"
     )
