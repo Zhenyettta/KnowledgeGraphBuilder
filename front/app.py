@@ -52,10 +52,10 @@ def initialize_sidebar_config():
             value=st.session_state.config.sample_size_ner_labels
         )
 
-        st.session_state.config.encoder_model = st.text_input(
-            "Encoder Model",
-            value=st.session_state.config.encoder_model
-        )
+        # st.session_state.config.encoder_model = st.text_input(
+        #     "Encoder Model",
+        #     value=st.session_state.config.encoder_model
+        # )
 
         st.session_state.config.ner_threshold = st.slider(
             "NER Threshold",
