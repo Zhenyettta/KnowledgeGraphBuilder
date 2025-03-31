@@ -30,7 +30,6 @@ class GraphAnswering:
         try:
             texts = []
             for i, document in enumerate(documents, 1):
-                print(document.text[:100])
                 texts.append(f"[Text {i}] {document.text}")
 
             context_texts = "\n\n".join(texts)
