@@ -29,7 +29,7 @@ class KnowledgeGraphRetriever:
             index=index,
             docstore=InMemoryDocstore(),
             index_to_docstore_id={},
-            distance_strategy=DistanceStrategy.COSINE,
+            distance_strategy=DistanceStrategy.COSINE
         )
 
     def index(self, knowledge_graph: KnowledgeGraph):
@@ -37,8 +37,8 @@ class KnowledgeGraphRetriever:
         for edge in knowledge_graph.edges:
             description = edge.description
             documents.append(Document(page_content=description, metadata={"id": edge.id}))
-
-        self.vector_store.add_documents(documents=documents)
+        if self.vector_store.index.ntotal == 0:
+            self.vector_store.add_documents(documents=documents)
 
     # def retrieve(self, query: str) -> list[Document]:
     #     # TODO this should be better documented, if we want to leave it as a docstring!
@@ -63,7 +63,6 @@ class KnowledgeGraphRetriever:
         """Query the indexed knowledge graph"""
         if self.vector_store.index.ntotal == 0:
             raise ValueError("Knowledge graph not indexed. Call index() first.")
-
         retrieved = self.vector_store.similarity_search_with_score(query, k=k)
         edge_id2score = {doc.metadata["id"]: score for doc, score in retrieved}
         edge_id2edge = {edge.id: edge for edge in knowledge_graph.edges}

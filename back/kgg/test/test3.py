@@ -1,16 +1,24 @@
+import json
 import time
-import torch
+import warnings
+from collections import Counter
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import warnings
-import json
-from collections import Counter
+import torch
 from gliner import GLiNER
-from kgg.config import KGGConfig
-from kgg.models import Entity, Document
-from kgg.nodes.entity_extraction import GLiNEREntitiesGenerator
 
+from kgg.config import KGGConfig
+from kgg.models import Document
+from kgg.nodes.entity_extraction import GLiNEREntitiesGenerator
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
+def get_gliner_model(labels: tuple[str, ...]):
+    """Load GLiNER exactly once and return the HF model(+tokenizer)."""
+    m = GLiNER.from_pretrained("urchade/gliner_large-v2.1").to('cuda')
+    return m
 
 def test_gliner_with_different_chunk_sizes(text, ner_labels, verbose=True):
     """
@@ -29,8 +37,11 @@ def test_gliner_with_different_chunk_sizes(text, ner_labels, verbose=True):
     model_max_length = 384
 
     # Test with more granular chunk sizes up to the model's maximum length
-    chunk_sizes = [64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384]
-    overlap_percentages = [10, 15, 20, 25, 30, 35, 40]
+
+    chunk_sizes = [96, 224, 384]
+
+
+    overlap_percentages = [10, 30, 50]
 
     results = {}
 
@@ -57,6 +68,8 @@ def test_gliner_with_different_chunk_sizes(text, ner_labels, verbose=True):
     # This will serve as our "ground truth" for comparison
     baseline_entities = []
     baseline_run = False
+    shared_model = get_gliner_model(tuple(config.ner_labels))
+
 
     # Only run baseline if the text isn't too large - max 10,000 chars to avoid memory issues
     if len(text) <= 10000:
@@ -67,6 +80,7 @@ def test_gliner_with_different_chunk_sizes(text, ner_labels, verbose=True):
                 print(f"{'-' * 80}")
 
             generator = GLiNEREntitiesGenerator(config)
+            generator.model = shared_model
             start_time = time.time()
 
             if torch.cuda.is_available():
@@ -106,6 +120,7 @@ def test_gliner_with_different_chunk_sizes(text, ner_labels, verbose=True):
 
             # Initialize generator with current settings
             generator = GLiNEREntitiesGenerator(config)
+            generator.model = shared_model
             generator.chunk_size = chunk_size
             generator.overlap = overlap
 
@@ -125,6 +140,7 @@ def test_gliner_with_different_chunk_sizes(text, ner_labels, verbose=True):
             for i, (chunk_text, offset) in enumerate(chunks):
                 if verbose and i % 10 == 0:  # Progress indicator
                     print(f"Processing chunk {i + 1}/{len(chunks)}")
+
 
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
@@ -325,7 +341,7 @@ def test_gliner_with_different_chunk_sizes(text, ner_labels, verbose=True):
     mean_entities = df["UniqueEntities"].mean()
     std_entities = df["UniqueEntities"].std()
     df["IsAnomaly"] = (df["UniqueEntities"] > mean_entities + 2 * std_entities) | (
-                df["UniqueEntities"] < mean_entities - 2 * std_entities)
+            df["UniqueEntities"] < mean_entities - 2 * std_entities)
 
     # Calculate combined score - weighted sum of normalized metrics
     # Penalize anomalies slightly in the scoring to prioritize consistent results
@@ -355,67 +371,135 @@ def test_gliner_with_different_chunk_sizes(text, ner_labels, verbose=True):
             print(f"  • Overall score: {row['Score']:.4f}")
 
     # Create visualization of results if there's enough data
-    if len(df) > 1 and verbose:
-        plt.figure(figsize=(15, 10))
+        # Create visualization of results if there's enough data
 
-        # Create a scatter plot with different metrics
-        scatter = plt.scatter(df["ChunkSize"], df["Overlap"],
-                              s=df["UniqueEntities"] * 5 + 50,  # Scale bubbles for visibility
-                              alpha=0.7,
-                              c=df["Score"],  # Color by overall score
-                              cmap="viridis")
+            # Create visualization of results if there's enough data
+        if len(df) > 1 and verbose:
+            plt.style.use('seaborn-v0_8-whitegrid')  # Keep a clean style
 
-        # Mark anomalies
-        anomalies = df[df["IsAnomaly"]]
-        if not anomalies.empty:
-            plt.scatter(anomalies["ChunkSize"], anomalies["Overlap"],
-                        s=anomalies["UniqueEntities"] * 5 + 50,
-                        edgecolors='red',
-                        facecolors='none',
-                        linewidth=2,
-                        alpha=0.7)
+            # --- Heatmap: Chunk Size vs Overlap, Color=Score (using Matplotlib only) ---
+            try:
+                # Pivot table for heatmap: Index=Overlap, Columns=ChunkSize, Values=Score
+                pivot_table_score = df.pivot(index="Overlap", columns="ChunkSize", values="Score")
+                # Pivot table for annotations (Unique Entities)
+                pivot_table_entities = df.pivot(index="Overlap", columns="ChunkSize", values="UniqueEntities")
 
-        # Highlight top configurations
-        top_indices = top_configs.index[:5]  # Highlight top 5
-        plt.scatter(df.loc[top_indices, "ChunkSize"],
-                    df.loc[top_indices, "Overlap"],
-                    s=200,
-                    facecolors='none',
-                    edgecolors='black',
-                    linewidth=2)
+                # Get the data matrix and axis labels
+                score_matrix = pivot_table_score.values
+                entity_matrix = pivot_table_entities.values
+                overlap_labels = pivot_table_score.index.tolist()
+                chunk_size_labels = pivot_table_score.columns.tolist()
 
-        # Add labels for top 5
-        for i, idx in enumerate(top_indices):
-            plt.annotate(f"#{i + 1}",
-                         (df.loc[idx, "ChunkSize"], df.loc[idx, "Overlap"]),
-                         xytext=(5, 5),
-                         textcoords="offset points",
-                         fontweight="bold")
+                fig, ax = plt.subplots(figsize=(12, 8))  # Adjust size for heatmap
 
-        plt.colorbar(scatter, label="Overall Score")
-        plt.xlabel("Chunk Size")
-        plt.ylabel("Overlap Size")
-        plt.title("GLiNER Performance by Configuration\n(Bubble size = entities found, color = overall score)")
-        plt.grid(True, alpha=0.3)
+                # Use imshow to display the score matrix
+                im = ax.imshow(score_matrix, cmap="viridis", aspect='auto')  # 'auto' aspect ratio
 
-        # Add second plot showing entity counts vs chunk size
-        plt.figure(figsize=(15, 6))
+                # Create colorbar
+                cbar = ax.figure.colorbar(im, ax=ax)
+                cbar.ax.set_ylabel("Overall Performance Score", rotation=-90, va="bottom")
 
-        for overlap_pct in sorted(df["Overlap"].unique()):
-            subset = df[df["Overlap"] == overlap_pct]
-            if not subset.empty:
-                plt.plot(subset["ChunkSize"], subset["UniqueEntities"],
-                         'o-', label=f"Overlap: {overlap_pct}")
+                # Set ticks and labels
+                ax.set_xticks(np.arange(len(chunk_size_labels)))
+                ax.set_yticks(np.arange(len(overlap_labels)))
+                ax.set_xticklabels(chunk_size_labels)
+                ax.set_yticklabels(overlap_labels)
 
-        plt.xlabel("Chunk Size")
-        plt.ylabel("Unique Entities Found")
-        plt.title("Impact of Chunk Size on Entity Extraction")
-        plt.grid(True, alpha=0.3)
-        plt.legend()
+                # Rotate the tick labels and set their alignment.
+                plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
-        # Save visualizations
-        plt.savefig("gliner_performance_comparison.png")
-        print("\nVisualizations saved as 'gliner_performance_comparison.png'")
+                # Loop over data dimensions and create text annotations.
+                # Normalize score matrix for text color decision
+                norm_score = (score_matrix - np.nanmin(score_matrix)) / (
+                            np.nanmax(score_matrix) - np.nanmin(score_matrix))
+                for i in range(len(overlap_labels)):
+                    for j in range(len(chunk_size_labels)):
+                        score_val = score_matrix[i, j]
+                        entity_val = entity_matrix[i, j]
+                        if not np.isnan(score_val):  # Check if value exists
+                            # Choose text color based on background luminance
+                            text_color = "white" if norm_score[i, j] < 0.5 else "black"
+                            text = ax.text(j, i, f"S: {score_val:.2f}\nE: {int(entity_val)}",
+                                           ha="center", va="center", color=text_color, fontsize=8)
+
+                ax.set_title("GLiNER Performance Heatmap (Score by Chunk Size and Overlap)", fontsize=16, pad=20)
+                ax.set_xlabel("Chunk Size (tokens)", fontsize=12, labelpad=10)
+                ax.set_ylabel("Overlap Size (tokens)", fontsize=12, labelpad=10)
+
+                fig.tight_layout()
+
+                # Save the heatmap plot
+                heatmap_filename = "gliner_heatmap_performance_mpl.png"
+                plt.savefig(heatmap_filename, bbox_inches='tight')
+                print(f"\nMatplotlib Heatmap plot saved as '{heatmap_filename}'")
+                plt.close(fig)  # Close the figure
+
+            except Exception as e:
+                print(f"\nCould not generate Matplotlib heatmap: {e}")
+                # If pivoting fails (e.g., duplicate index/column pairs), print df info
+                if isinstance(e, ValueError):
+                    print("DataFrame info for debugging heatmap pivot:")
+                    print(df[['ChunkSize', 'Overlap', 'Score']].head())
+
+            # --- Line Plot: Chunk Size vs Unique Entities (Grouped by Overlap) ---
+            # Keep the existing line plot code here...
+            # Ensure the 'OverlapPct' column exists in df from previous steps
+            if 'OverlapPct' not in df.columns:
+                print("Warning: 'OverlapPct' column missing from DataFrame for line plot legend.")
+                # Attempt to calculate it if missing - requires overlap_pct in results dict
+                # This is a fallback, ensure it's added correctly earlier
+                try:
+                    df['OverlapPct'] = df.apply(
+                        lambda row: int(row['Overlap'] / row['ChunkSize'] * 100) if row['ChunkSize'] > 0 else 0,
+                        axis=1)
+                except KeyError:
+                    print("Error: Cannot calculate 'OverlapPct' as 'Overlap' or 'ChunkSize' is missing.")
+                    # Handle the absence of necessary columns gracefully, maybe skip the percentage in the label
+                    df['OverlapPct'] = 0  # Assign a default or handle appropriately
+
+            plt.figure(figsize=(14, 7))  # Adjusted size
+            markers = ['o', 's', '^', 'D', 'v', '<', '>']
+            colors = plt.cm.viridis(np.linspace(0, 0.9, len(df["Overlap"].unique())))
+
+            sorted_overlaps = sorted(df["Overlap"].unique())
+
+            for i, overlap_val in enumerate(sorted_overlaps):
+                subset = df[df["Overlap"] == overlap_val].sort_values("ChunkSize")
+                if not subset.empty:
+                    label_text = f"Overlap: {overlap_val}"
+                    # Safely check if 'OverlapPct' exists and has valid data before using it
+                    if 'OverlapPct' in subset.columns and not subset['OverlapPct'].isnull().all():
+                        try:
+                            overlap_pct_val = int(subset.iloc[0]['OverlapPct'])
+                            label_text += f" ({overlap_pct_val}%)"
+                        except (ValueError, TypeError):
+                            pass  # Keep label without percentage if conversion fails
+
+                    plt.plot(
+                        subset["ChunkSize"],
+                        subset["UniqueEntities"],
+                        marker=markers[i % len(markers)],
+                        linestyle='-',
+                        linewidth=2.5,
+                        markersize=8,
+                        color=colors[i],
+                        label=label_text
+                    )
+
+            plt.title("Impact of Chunk Size on Unique Entities Found (by Overlap)", fontsize=16, pad=15)
+            plt.xlabel("Chunk Size (tokens)", fontsize=12, labelpad=10)
+            plt.ylabel("Number of Unique Entities Found", fontsize=12, labelpad=10)
+            plt.xticks(df["ChunkSize"].unique())
+            plt.legend(title="Overlap Configuration", fontsize=10, title_fontsize=11)
+            plt.grid(True, linestyle=':', alpha=0.6)
+
+            line_filename = "gliner_line_entities_vs_chunksize.png"
+            plt.savefig(line_filename, bbox_inches='tight')
+            print(f"Line plot saved as '{line_filename}'")
+            plt.close()  # Close the figure
+
+            # (Optional) Display plots if not running in a headless environment
+            # plt.show()
 
     # Save detailed results to JSON for later analysis
     with open("gliner_benchmark_results.json", "w") as f:

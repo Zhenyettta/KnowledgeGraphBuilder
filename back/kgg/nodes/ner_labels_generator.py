@@ -31,20 +31,17 @@ class NERLabelsGenerator:
             unique_labels = set()
 
             for document in documents:
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                gc.collect()
-
                 # Split document into chunks
                 chunks = self.text_splitter.split_text(document.text)
                 total_chunks = len(chunks)
                 print(f"Document split into {total_chunks} chunks for label generation")
 
                 for chunk_text in chunks:
-                    response = self.llm.invoke(self.prompt.format_prompt(
+                    response = self._invoke_with_retry(self.prompt.format_prompt(
                         user_input=chunk_text,
                     ))
                     unique_labels.update(self._parse_response(response))
+                    print(len(unique_labels))
 
             print(f"Unique labels: {len(unique_labels)}")
             self.unload_model()
@@ -53,6 +50,23 @@ class NERLabelsGenerator:
         except Exception as e:
             print(f"Error generating schema: {e}")
             return []
+
+    def _invoke_with_retry(self, prompt: str, max_attempts: int = 5) -> BaseMessage:
+        """
+        Invoke the LLM and automatically retry the same prompt if the model
+        stopped because the context/window was exhausted (`finish_reason == "length"`).
+        """
+        attempt = 1
+        while True:
+            response: BaseMessage = self.llm.invoke(prompt)
+
+            finish_reason = response.response_metadata.get("done_reason")
+
+            if finish_reason == "length" and attempt < max_attempts:
+                print(f"[warning] Truncated response (finish_reason='length') – retrying ({attempt}/{max_attempts})")
+                attempt += 1
+                continue  # resend the identical prompt
+            return response
 
     def _parse_response(self, response: BaseMessage) -> list[str]:
         generated_text = response.content.strip()
@@ -96,7 +110,7 @@ class NERLabelsGenerator:
     def _load_model(self):
         if self.llm is None:
             print("Loading llm model to GPU...")
-            self.llm = initialize_llm(self.config, num_ctx=5000)
+            self.llm = initialize_llm(self.config, num_ctx=4000, num_predict=1000)
             self.tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-large")
             self.text_splitter = RecursiveCharacterTextSplitter(
                 length_function=self.length_function,

@@ -100,3 +100,38 @@ class GLiNEREntitiesGenerator:
 
     def length_function(self, text):
         return len(self.tokenizer.encode(text, add_special_tokens=False))
+
+    def _split_into_chunks(self, text):
+        """
+        Split the input text into overlapping chunks.
+
+        Args:
+            text (str): The input text to be split
+
+        Returns:
+            list of tuples: Each tuple contains (chunk_text, offset)
+        """
+        chunks = []
+        text_length = len(text)
+
+        # If text is shorter than chunk_size, return it as a single chunk
+        if text_length <= self.chunk_size:
+            return [(text, 0)]
+
+        # Calculate step size (chunk_size - overlap)
+        step = self.chunk_size - self.overlap
+
+        # Create overlapping chunks
+        start = 0
+        while start < text_length:
+            end = min(start + self.chunk_size, text_length)
+
+            # Add the chunk and its offset to the result
+            chunks.append((text[start:end], start))
+
+            # Move to the next position
+            if end == text_length:
+                break
+            start += step
+
+        return chunks

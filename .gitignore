@@ -170,3 +170,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 /back/datasets/
+/data/databases/neo4j/
+/neo4j-data/
+/cache/
+/back/kgg/test/new_test/KGs/

@@ -64,9 +64,14 @@ class KnowledgeGraphGenerator:
         Returns:
             KnowledgeGraph: The generated knowledge graph
         """
-        if not self.config.ner_labels:
+        if not self.config.ner_labels:  # Check if ner_labels is empty or None
+            # If empty, generate labels using the documents
             self.config.ner_labels = self.generate_labels(documents)
+            print("Generated NER Labels:", self.config.ner_labels)
+        else:
+            print("Existing NER Labels:", self.config.ner_labels)
 
+        # Proceed with the rest of the processing
         documents_with_entities = self.generate_entities(documents)
         documents_with_relations = self.generate_relations(documents_with_entities)
         graph = self.cluster(documents_with_relations)
